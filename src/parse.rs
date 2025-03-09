@@ -62,6 +62,27 @@ macro_rules! impl_parsable_segment {
     };
 }
 
+// impl ParsableSegment for PassageSegment {
+//     const EXPECTED_FORMAT: &'static str;
+// }
+
+impl PassageSegment {
+    pub fn parse(input: &str) -> Result<Self, String> {
+        input.parse::<Self>()
+    }
+}
+
+impl FromStr for PassageSegment {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let segments = PassageSegments::parse(s)
+            .map_err(|_| format!("Could not parse any segments."))?;
+        if segments.is_empty() { Err(String::from("No segments found"))? }
+        Ok(segments[0])
+    }
+}
+
 fn match_and_sanitize_segment_input(segment_input: &str) -> Option<String> {
     let segment_match = POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS
         .find_iter(segment_input)
