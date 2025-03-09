@@ -8,6 +8,8 @@ pub struct ExplicitChapterVerseRange {
 }
 
 impl PassageSegment {
+    /// **Note:** I am doing `<SegmentType>` -> `PassageSegment` -> `ExplicitChapterVerseRange` on each overlap comparison.
+    /// I should optimize this at somie point, cause I do not know how well the Rust compiler is
     fn explicify(&self) -> ExplicitChapterVerseRange {
         ExplicitChapterVerseRange {
             start_chapter: self.get_starting_chapter(),
