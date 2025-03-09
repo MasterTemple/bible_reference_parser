@@ -1,5 +1,5 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
+use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
 use crate::segment::PassageSegment;
 
 /// - This is a single chapter reference

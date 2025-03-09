@@ -1,9 +1,8 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
-
+use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
 use crate::segment::PassageSegment;
-
 use super::range_pair::RangePair;
+
 /// - This is a range of verse references within a single chapter
 /// - Ex: `1:2-3` `John 1:2-3`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

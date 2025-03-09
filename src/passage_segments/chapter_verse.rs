@@ -1,7 +1,7 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
-
+use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
 use crate::segment::PassageSegment;
+
 /// - This is a single chapter/verse reference
 /// - Ex: `1:2` in `John 1:2`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

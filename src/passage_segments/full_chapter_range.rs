@@ -1,7 +1,6 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
 use crate::segment::PassageSegment;
-
 use super::{full_chapter::FullChapter, range_pair::RangePair};
 
 /// - This is a chapter range reference

@@ -1,8 +1,6 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
-
 use crate::segment::PassageSegment;
-
 use super::{chapter_verse::ChapterVerse, range_pair::RangePair};
 
 /// - This is a range of verse references across a multiple chapters
