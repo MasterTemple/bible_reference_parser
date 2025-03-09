@@ -1,7 +1,7 @@
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
+use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
 
-use crate::passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange, range_pair::RangePair};
+use crate::passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange};
 
 /// Remember, these correspond to
 /// ```
@@ -83,19 +83,14 @@ impl PassageSegment {
 // Easy constructors
 impl PassageSegment {
     pub fn chapter_verse(chapter: usize, verse: usize) -> Self {
-        Self::ChapterVerse(ChapterVerse { chapter, verse })
+        Self::ChapterVerse(ChapterVerse::new(chapter, verse))
     }
 
     pub fn chapter_verse_range(chapter: usize, start_verse: usize, end_verse: usize) -> Self {
         Self::ChapterVerseRange(ChapterVerseRange::new(chapter, start_verse, end_verse))
     }
 
-    pub fn chapter_range(
-        start_chapter: usize,
-        start_verse: usize,
-        end_chapter: usize,
-        end_verse: usize,
-    ) -> Self {
+    pub fn chapter_range(start_chapter: usize, start_verse: usize, end_chapter: usize, end_verse: usize) -> Self {
         Self::ChapterRange(ChapterRange::new(start_chapter, start_verse, end_chapter, end_verse))
     }
 
@@ -109,33 +104,14 @@ impl PassageSegment {
 }
 
 // Formatting
-impl PassageSegment {
-    pub fn label(&self) -> String {
-        match self {
-            PassageSegment::ChapterVerse(chapter_verse) => {
-                format!("{}:{}", chapter_verse.chapter, chapter_verse.verse)
-            }
-            PassageSegment::ChapterVerseRange(chapter_range) => {
-                format!(
-                    "{}:{}-{}",
-                    chapter_range.chapter, chapter_range.verses.start, chapter_range.verses.end
-                )
-            }
-            PassageSegment::ChapterRange(book_range) => {
-                format!(
-                    "{}:{}-{}:{}",
-                    book_range.start.chapter,
-                    book_range.start.verse,
-                    book_range.end.chapter,
-                    book_range.end.verse
-                )
-            }
-            PassageSegment::FullChapter(full_chapter) => {
-                format!("{}", full_chapter.chapter)
-            }
-            PassageSegment::FullChapterRange(full_chapter_range) => {
-                format!("{}-{}", full_chapter_range.start.chapter, full_chapter_range.end.chapter)
-            }
-        }
+impl Display for PassageSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.to_string(),
+            PassageSegment::ChapterVerseRange(chapter_verse_range) => chapter_verse_range.to_string(),
+            PassageSegment::ChapterRange(chapter_range) => chapter_range.to_string(),
+            PassageSegment::FullChapter(full_chapter) => full_chapter.to_string(),
+            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.to_string(),
+        })
     }
 }
