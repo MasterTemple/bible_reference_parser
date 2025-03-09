@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
-use crate::segment::PassageSegment;
+use std::{fmt::Display, ops::{Deref, DerefMut}};
+use crate::{impl_parsable_segment, segment::PassageSegment};
 use super::{chapter_verse::ChapterVerse, range_pair::RangePair};
 
 /// - This is a range of verse references across a multiple chapters
@@ -47,3 +47,5 @@ impl Display for ChapterRange {
         write!(f, "{}-{}:{}-{}", self.start.chapter, self.start.verse, self.end.chapter, self.end.verse)
     }
 }
+
+impl_parsable_segment!(ChapterRange, "{}-{}:{}-{}");

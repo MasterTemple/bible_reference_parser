@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use crate::{passage_segments::chapter_verse::ChapterVerse, segment::PassageSegment, segments::PassageSegments};
@@ -22,6 +24,36 @@ impl PassageSegments {
         let segments = parse_reference_segments(&input);
         Some(segments)
     }
+}
+
+pub trait ParsableSegment: FromStr {
+    const EXPECTED_FORMAT: &'static str;
+    fn parse(input: &str) -> Result<Self, <Self as FromStr>::Err>  {
+        input.parse::<Self>()
+    }
+}
+
+#[macro_export]
+macro_rules! impl_parsable_segment {
+    ($name:ident, $fmt: literal) => {
+        impl crate::parse::ParsableSegment for $name {
+            const EXPECTED_FORMAT: &'static str = $fmt;
+        }
+
+        impl std::str::FromStr for $name {
+            type Err = String;
+
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                use crate::parse::ParsableSegment;
+                let segments = crate::segments::PassageSegments::try_parse(s).ok_or_else(|| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
+                if segments.is_empty() { Err(String::from("No segments found"))? }
+                Ok(match segments[0] {
+                    PassageSegment::$name(this) => this,
+                    _ => Err(format!("Parsed incorrect format. Expected format '{}'", Self::EXPECTED_FORMAT))?,
+                })
+            }
+        }
+    };
 }
 
 fn match_and_sanitize_segment_input(segment_input: &str) -> Option<String> {

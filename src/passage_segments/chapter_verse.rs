@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
-use crate::segment::PassageSegment;
+use crate::{impl_parsable_segment, segment::PassageSegment};
 
 /// - This is a single chapter/verse reference
 /// - Ex: `1:2` in `John 1:2`
@@ -9,18 +9,23 @@ pub struct ChapterVerse {
     pub chapter: usize,
     pub verse: usize,
 }
+
 impl ChapterVerse {
     pub fn new(chapter: usize, verse: usize) -> Self {
         ChapterVerse { chapter, verse }
     }
 }
+
 impl Into<PassageSegment> for ChapterVerse {
     fn into(self) -> PassageSegment {
         PassageSegment::ChapterVerse(self)
     }
 }
+
 impl Display for ChapterVerse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}", self.chapter, self.verse)
     }
 }
+
+impl_parsable_segment!(ChapterVerse, "{}:{}");

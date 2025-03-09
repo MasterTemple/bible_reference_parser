@@ -68,9 +68,9 @@ let second = FullChapter::new(2);
 println!("{}", first.overlaps_with(second)); // false
 
 // John 2:7
-let first = ChapterVerse::new(2, 7);
+let first: ChapterVerse = "2:7".parse().unwrap(); // or ChapterVerse::new(2, 7)
 // John 2:4-3:1
-let second = ChapterRange::new(2, 4, 3, 1);
+let second = ChapterRange::parse("2:4-3:1").unwrap(); // or ChapterRange::new(2, 4, 3, 1)
 println!("{}", first.overlaps_with(second)); // true
 ```
 

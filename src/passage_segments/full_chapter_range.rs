@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}};
-use crate::segment::PassageSegment;
+use crate::{impl_parsable_segment, segment::PassageSegment};
 use super::{full_chapter::FullChapter, range_pair::RangePair};
 
 /// - This is a chapter range reference
@@ -13,11 +13,13 @@ impl Deref for FullChapterRange {
         &self.0
     }
 }
+
 impl DerefMut for FullChapterRange {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
+
 impl FullChapterRange {
     pub fn new(start: usize, end: usize) -> Self {
         FullChapterRange(RangePair{
@@ -30,13 +32,17 @@ impl FullChapterRange {
         })
     }
 }
+
 impl Into<PassageSegment> for FullChapterRange {
     fn into(self) -> PassageSegment {
         PassageSegment::FullChapterRange(self)
     }
 }
+
 impl Display for FullChapterRange {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}-{}", self.start, self.end)
     }
 }
+
+impl_parsable_segment!(FullChapterRange, "{}-{}");
