@@ -19,7 +19,7 @@ use crate::passage_segments::{chapter_range::ChapterRange, chapter_verse::Chapte
 /// ```
 /// These should be grouped into a single reference
 ///
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PassageSegment {
     /// - This is a single chapter/verse reference
@@ -37,6 +37,17 @@ pub enum PassageSegment {
     /// - This is a chapter range reference
     /// - Ex: `1-2` in `John 1-2`
     FullChapterRange(FullChapterRange),
+}
+
+impl PartialOrd for PassageSegment {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(
+            self.get_starting_chapter().cmp(&other.get_starting_chapter())
+            .then(self.get_starting_verse().cmp(&other.get_starting_verse()))
+            .then(self.get_ending_chapter().cmp(&other.get_ending_chapter()))
+            .then(self.get_ending_verse().cmp(&other.get_ending_verse()))
+        )
+    }
 }
 
 // Helpful methods for accessing data
