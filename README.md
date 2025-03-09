@@ -12,23 +12,28 @@ This will be used as a dependency for other projects of mine
 
 A segment is a unit or contiguous range of verses or chapters
 
-**ChapterVerse**
+#### ChapterVerse
+
 - This is a single chapter/verse reference
 - Ex: `1:2` in `John 1:2`
 
-**ChapterVerseRange**
+#### ChapterVerseRange
+
 - This is a range of verse references within a single chapter
 - Ex: `1:2-3` `John 1:2-3`
 
-**ChapterRange**
+#### ChapterRange
+
 - This is a range of verse references across a multiple chapters
 - Ex: `John 1:2-3:4`
 
-**FullChapter**
+#### FullChapter
+
 - This is a single chapter reference
 - Ex: `1` in `John 1`
 
-**FullChapterRange**
+#### FullChapterRange
+
 - This is a chapter range reference
 - Ex: `1-2` in `John 1-2`
 
@@ -43,14 +48,38 @@ A segment is a unit or contiguous range of verses or chapters
 - Check if segments of any kind overlap with segments of any other kind
 - Check if passages (sets of segments) overlap with other passages
 
-### Example:
+## Installation
 
-Actual passage reference:
-`John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8`
+```toml
+bible_reference_parser = { git = "https://github.com/MasterTemple/bible_reference_parser.git" }
+```
 
-Reference segments:
-`1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8`
+## Usage
 
+**Note:** books are included in comments for readability sake
+
+### Check Overlap
+
+```rust
+// John 1:3
+let first = ChapterVerse::new(1, 3);
+// John 2
+let second = FullChapter::new(2);
+println!("{}", first.overlaps_with(second)); // false
+
+// John 2:7
+let first = ChapterVerse::new(2, 7);
+// John 2:4-3:1
+let second = ChapterRange::new(2, 4, 3, 1);
+println!("{}", first.overlaps_with(second)); // true
+```
+
+### Parse
+
+```rust
+let segments = PassageSegments::try_parse("1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8");
+println!("{:#?}", segments); // see below
+```
 <details>
 
 <summary>Output</summary>
@@ -133,14 +162,3 @@ PassageSegments(
 
 </details>
 
-## Installation
-
-```toml
-bible_reference_parser = { git = "https://github.com/MasterTemple/bible_reference_parser.git" }
-```
-
-## Usage
-
-```rust
-todo!()
-```
