@@ -53,13 +53,18 @@ mod overlap_tests {
         // ------------ //
 
         // true
+        // 3:3
         assert!(this.double_overlap(PassageSegment::chapter_verse(3, 3)));
 
         // false
+        // 2:3
         assert!(!this.double_overlap(PassageSegment::chapter_verse(2, 3)));
+        // 3:2
         assert!(!this.double_overlap(PassageSegment::chapter_verse(3, 2)));
 
+        // 4:3
         assert!(!this.double_overlap(PassageSegment::chapter_verse(4, 3)));
+        // 3:4
         assert!(!this.double_overlap(PassageSegment::chapter_verse(3, 4)));
 
         // ----------------- //
@@ -67,21 +72,33 @@ mod overlap_tests {
         // ----------------- //
 
         // true
+        // 3:3-3
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 3, 3)));
 
+        // 3:1-3
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 1, 3)));
+        // 3:3-4
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 3, 4)));
+        // 3:1-4
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 1, 4)));
 
         // false
+        // 1:3-3
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 3, 3)));
+        // 1:1-3
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 1, 3)));
+        // 1:1-4
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 1, 4)));
+        // 1:3-4
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 3, 4)));
 
+        // 4:3-3
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 3, 3)));
+        // 4:1-3
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 1, 3)));
+        // 4:1-4
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 1, 4)));
+        // 4:3-4
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 3, 4)));
 
         // ------------ //
@@ -89,17 +106,25 @@ mod overlap_tests {
         // ------------ //
 
         // true
+        // 3:3-3-3
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 3, 3)));
 
+        // 1:1-3-3
         assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 3)));
+        // 1:3-3-3
         assert!(this.double_overlap(PassageSegment::chapter_range(1, 3, 3, 3)));
 
+        // 3:3-4-1
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 1)));
+        // 3:3-4-3
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 3)));
+        // 3:3-4-4
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 4)));
 
         // false
+        // 3:4-4-4
         assert!(!this.double_overlap(PassageSegment::chapter_range(3, 4, 4, 4)));
+        // 1:1-3-1
         assert!(!this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 1)));
 
         // ----------- //
@@ -107,10 +132,13 @@ mod overlap_tests {
         // ----------- //
 
         // true
+        // 3
         assert!(this.double_overlap(PassageSegment::full_chapter(3)));
 
         // false
+        // 2
         assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        // 4
         assert!(!this.double_overlap(PassageSegment::full_chapter(4)));
 
         // ---------------- //
@@ -118,13 +146,19 @@ mod overlap_tests {
         // ---------------- //
 
         // true
+        // 3-3
         assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 3)));
+        // 1-3
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        // 3-4
         assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        // 1-4
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 4)));
 
         // false
+        // 1-2
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        // 4-5
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
     }
 
@@ -137,21 +171,33 @@ mod overlap_tests {
         // ----------------- //
 
         // true
+        // 3:3-7
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 3, 7)));
 
+        // 3:1-3
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 1, 3)));
+        // 3:4-6
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 4, 6)));
+        // 3:7-8
         assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 7, 8)));
 
         // false
+        // 2:3-7
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 3, 7)));
+        // 2:1-3
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 1, 3)));
+        // 2:4-6
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 4, 6)));
+        // 2:7-8
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 7, 8)));
 
+        // 2:3-7
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 3, 7)));
+        // 2:1-3
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 1, 3)));
+        // 2:4-6
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 4, 6)));
+        // 2:7-8
         assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 7, 8)));
 
         // ------------ //
@@ -159,18 +205,26 @@ mod overlap_tests {
         // ------------ //
 
         // true
+        // 3:3-3-7
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 3, 7)));
 
+        // 1:1-3-3
         assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 3)));
+        // 1:1-3-7
         assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 7)));
 
+        // 3:3-4-4
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 4)));
+        // 3:7-4-4
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 7, 4, 4)));
 
+        // 3:4-3-6
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 4, 3, 6)));
 
         // false
+        // 1:1-3-2
         assert!(!this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 2)));
+        // 3:8-4-4
         assert!(!this.double_overlap(PassageSegment::chapter_range(3, 8, 4, 4)));
 
         // ----------- //
@@ -178,10 +232,13 @@ mod overlap_tests {
         // ----------- //
 
         // true
+        // 3
         assert!(this.double_overlap(PassageSegment::full_chapter(3)));
 
         // false
+        // 2
         assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        // 4
         assert!(!this.double_overlap(PassageSegment::full_chapter(4)));
 
         // ---------------- //
@@ -189,13 +246,19 @@ mod overlap_tests {
         // ---------------- //
 
         // true
+        // 3-3
         assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 3)));
+        // 1-3
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        // 3-4
         assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        // 1-4
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 4)));
 
         // false
+        // 1-2
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        // 4-5
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
       
     }
@@ -209,19 +272,28 @@ mod overlap_tests {
         // ------------ //
 
         // true
+        // 3:3-4-4
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 4)));
 
+        // 1:1-3-3
         assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 3)));
+        // 1:1-4-4
         assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 4, 4)));
 
+        // 3:3-5-5
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 5, 5)));
+        // 4:4-5-5
         assert!(this.double_overlap(PassageSegment::chapter_range(4, 4, 5, 5)));
 
+        // 3:4-3-6
         assert!(this.double_overlap(PassageSegment::chapter_range(3, 4, 3, 6)));
+        // 4:1-4-3
         assert!(this.double_overlap(PassageSegment::chapter_range(4, 1, 4, 3)));
 
         // false
+        // 1:1-3-2
         assert!(!this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 2)));
+        // 4:5-5-5
         assert!(!this.double_overlap(PassageSegment::chapter_range(4, 5, 5, 5)));
 
         // ----------- //
@@ -229,11 +301,15 @@ mod overlap_tests {
         // ----------- //
 
         // true
+        // 3
         assert!(this.double_overlap(PassageSegment::full_chapter(3)));
+        // 4
         assert!(this.double_overlap(PassageSegment::full_chapter(4)));
 
         // false
+        // 2
         assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        // 5
         assert!(!this.double_overlap(PassageSegment::full_chapter(5)));
 
         // ---------------- //
@@ -241,13 +317,19 @@ mod overlap_tests {
         // ---------------- //
 
         // true
+        // 3-4
         assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        // 1-3
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        // 4-5
         assert!(this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
+        // 1-5
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 5)));
 
         // false
+        // 1-2
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        // 5-6
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(5, 6)));
     }
 
@@ -260,10 +342,13 @@ mod overlap_tests {
         // ----------- //
 
         // true
+        // 3
         assert!(this.double_overlap(PassageSegment::full_chapter(3)));
 
         // false
+        // 2
         assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        // 4
         assert!(!this.double_overlap(PassageSegment::full_chapter(4)));
 
         // ---------------- //
@@ -271,11 +356,15 @@ mod overlap_tests {
         // ---------------- //
 
         // true
+        // 1-3
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        // 3-4
         assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
 
         // false
+        // 1-2
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        // 4-6
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(4, 6)));
     }
 
@@ -288,13 +377,19 @@ mod overlap_tests {
         // ---------------- //
 
         // true
+        // 3-4
         assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        // 1-3
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        // 4-5
         assert!(this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
+        // 1-5
         assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 5)));
 
         // false
+        // 1-2
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        // 5-6
         assert!(!this.double_overlap(PassageSegment::full_chapter_range(5, 6)));
       
     }
