@@ -6,8 +6,14 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange}, segment::PassageSegment, segments::PassageSegments};
 
+// static POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS: Lazy<Regex> =
+//     Lazy::new(|| Regex::new(r"^ *\d+:\d+( *[,:;\-–] *\d+)*").unwrap());
+
+/// Basically, start with and end with a digit
+/// and then collect digits joined by ranges (-–) or segments (,;) or chapters (:)
 static POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^ *\d+:\d+( *[,:;\-–] *\d+)*").unwrap());
+    // Lazy::new(|| Regex::new(r"^ *\d+(:\d+( *[,:;\-–] *\d+)*)?").unwrap());
+    Lazy::new(|| Regex::new(r"^ *\d+( *[,:;\-–] *\d+)*").unwrap());
 
 static NON_SEGMENT_CHARACTERS: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^\d,:;-]+").unwrap());
 
@@ -71,10 +77,28 @@ pub(super) fn parse_reference_segments(input: &str) -> PassageSegments {
 
     // ALWAYS UPDATE THE CHAPTER SO I CAN USE IT WHEN ONLY VERSES ARE PROVIDED
     let mut chapter = 1;
+    // once i see a verse, it is indeterminable when chapters are found, so I will no longer
+    // consider them
+    let mut check_for_full_chapters = true;
     let mut segments: Vec<PassageSegment> = Vec::new();
     for range in ranges {
         // if it is a range
         if let Some((left, right)) = range.split_once("-") {
+            if check_for_full_chapters {
+                // try a chapter range
+                if !left.contains(":") && !right.contains(":") {
+                    let start = left.parse().unwrap();
+                    let end = right.parse().unwrap();
+                    segments.push(PassageSegment::full_chapter_range(
+                        start,
+                        end,
+                    ));
+                    chapter = end;
+                    continue;
+                }
+            }
+            check_for_full_chapters = false;
+
             match (left.split_once(":"), right.split_once(":")) {
                 // `ch1:v1 - ch2:v2`
                 (Some((ch1, v1)), Some((ch2, v2))) => {
@@ -126,8 +150,17 @@ pub(super) fn parse_reference_segments(input: &str) -> PassageSegments {
                     verse: v.parse().unwrap(),
                 }))
             }
-            // handle `v`
+            // handle `ch` or `v`
             else {
+                // handle `ch`
+                if check_for_full_chapters {
+                    chapter = range.parse().unwrap();
+                    segments.push(PassageSegment::full_chapter(chapter));
+                    continue;
+                }
+                check_for_full_chapters = false;
+
+                // handle `v`
                 let v = range.parse().unwrap();
                 segments.push(PassageSegment::ChapterVerse(ChapterVerse {
                     chapter,
