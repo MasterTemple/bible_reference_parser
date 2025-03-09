@@ -5,8 +5,18 @@ use super::{full_chapter::FullChapter, range_pair::RangePair};
 
 /// - This is a chapter range reference
 /// - Ex: `1-2` in `John 1-2`
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct FullChapterRange(RangePair<FullChapter>);
+
+impl PartialOrd for FullChapterRange {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(
+            self.start.chapter.cmp(&other.start.chapter)
+            .then(self.end.chapter.cmp(&other.end.chapter))
+        )
+    }
+}
+
 impl Deref for FullChapterRange {
     type Target = RangePair<FullChapter>;
     fn deref(&self) -> &Self::Target {

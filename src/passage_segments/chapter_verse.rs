@@ -4,10 +4,17 @@ use crate::{impl_parsable_segment, segment::PassageSegment};
 
 /// - This is a single chapter/verse reference
 /// - Ex: `1:2` in `John 1:2`
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct ChapterVerse {
     pub chapter: usize,
     pub verse: usize,
+}
+
+impl PartialOrd for ChapterVerse {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.chapter.cmp(&other.chapter)
+            .then(self.verse.cmp(&other.verse)))
+    }
 }
 
 impl ChapterVerse {
