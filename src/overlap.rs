@@ -17,7 +17,7 @@ impl PassageSegment {
         }
     }
 
-    pub fn overlaps_with(&self, other: PassageSegment) -> bool {
+    pub(super) fn overlaps_segment(&self, other: &PassageSegment) -> bool {
         let this = self.explicify();
         let other = other.explicify();
         // checking overlap by checking if there is space between their edges
@@ -32,7 +32,15 @@ impl PassageSegment {
     }
 }
 
+pub trait OverlapsWith: Into<PassageSegment> {
+    fn overlaps_with(self, other: impl Into<PassageSegment>) -> bool {
+        let other_seg: PassageSegment = other.into();
+        let this_seg: PassageSegment  = self.into();
+        this_seg.overlaps_segment(&other_seg)
+    }
+}
 
+impl<T: Into<PassageSegment>> OverlapsWith for T {}
 
 #[cfg(test)]
 mod overlap_tests {
