@@ -19,10 +19,18 @@ static TRAILING_NON_DIGITS: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\D+$)").unw
 // static SEGMENT_SPLITTERS: Lazy<Regex> = Lazy::new(|| Regex::new("[,;]").unwrap());
 
 impl PassageSegments {
-    pub fn try_parse(segment_input: &str) -> Option<Self> {
-        let input = match_and_sanitize_segment_input(segment_input)?;
+    pub fn parse(segment_input: &str) -> Result<Self, String> {
+        let input = match_and_sanitize_segment_input(segment_input).ok_or_else(|| String::from("Failed to parse segments"))?;
         let segments = parse_reference_segments(&input);
-        Some(segments)
+        Ok(segments)
+    }
+}
+
+impl FromStr for PassageSegments {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse(s)
     }
 }
 
@@ -45,7 +53,7 @@ macro_rules! impl_parsable_segment {
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 use crate::parse::ParsableSegment;
-                let segments = crate::segments::PassageSegments::try_parse(s).ok_or_else(|| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
+                let segments = crate::segments::PassageSegments::parse(s).map_err(|_| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
                 if segments.is_empty() { Err(String::from("No segments found"))? }
                 Ok(match segments[0] {
                     crate::segment::PassageSegment::$name(this) => this,
@@ -183,7 +191,7 @@ mod parse_tests {
     use super::*;
 
     fn parse(input: &str) -> Vec<PassageSegment> {
-        let parsed = PassageSegments::try_parse(input).unwrap();
+        let parsed = PassageSegments::parse(input).unwrap();
         parsed.0
     }
 
