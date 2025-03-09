@@ -2,7 +2,7 @@ use std::{fmt::Debug, ops::{Deref, DerefMut}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::segment::PassageSegment;
+use crate::{overlap::OverlapsWith, segment::PassageSegment};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PassageSegments(pub Vec<PassageSegment>);
@@ -26,9 +26,14 @@ impl PassageSegments {
         Self(vec![])
     }
 
+    fn overlaps_segment(&self, other: impl Into<PassageSegment>) -> bool {
+        let other = other.into();
+        self.iter().any(|this| this.overlaps_with(other))
+    }
+
     /// - This can be better optimized, but that is not a priority right now
     /// - I just need some way to order the segments and do it in linear time
     pub fn overlaps_with(&self, other: PassageSegments) -> bool {
-        self.iter().any(|this_seg| other.iter().any(|other_seg| this_seg.overlaps_segment(other_seg)))
+        self.iter().any(|this| other.overlaps_segment(*this))
     }
 }

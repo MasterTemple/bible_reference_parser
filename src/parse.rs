@@ -48,7 +48,7 @@ macro_rules! impl_parsable_segment {
                 let segments = crate::segments::PassageSegments::try_parse(s).ok_or_else(|| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
                 if segments.is_empty() { Err(String::from("No segments found"))? }
                 Ok(match segments[0] {
-                    PassageSegment::$name(this) => this,
+                    crate::segment::PassageSegment::$name(this) => this,
                     _ => Err(format!("Parsed incorrect format. Expected format '{}'", Self::EXPECTED_FORMAT))?,
                 })
             }
