@@ -1,33 +1,36 @@
-use std::{fmt::Debug, ops::{Deref, DerefMut}};
-
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
-use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange}, segment::PassageSegment, segments::PassageSegments};
-
-// static POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS: Lazy<Regex> =
-//     Lazy::new(|| Regex::new(r"^ *\d+:\d+( *[,:;\-–] *\d+)*").unwrap());
+use crate::{passage_segments::chapter_verse::ChapterVerse, segment::PassageSegment, segments::PassageSegments};
 
 /// Basically, start with and end with a digit
-/// and then collect digits joined by ranges (-–) or segments (,;) or chapters (:)
+/// and then collect digits joined by ranges `-–——⸺` or segments `,;` or chapters `:`
 static POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS: Lazy<Regex> =
-    // Lazy::new(|| Regex::new(r"^ *\d+(:\d+( *[,:;\-–] *\d+)*)?").unwrap());
-    Lazy::new(|| Regex::new(r"^ *\d+( *[,:;\-–] *\d+)*").unwrap());
+    Lazy::new(|| Regex::new(r"^ *\d+( *[,:;\-–——⸺] *\d+)*").unwrap());
+
+const ALL_DASHES: [char; 5] = ['-', '–', '—', '—', '⸺'];
+const SEGMENT_SPLITTERS: [char; 2] = [',', ';'];
 
 static NON_SEGMENT_CHARACTERS: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^\d,:;-]+").unwrap());
 
 static TRAILING_NON_DIGITS: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\D+$)").unwrap());
 
-static SEGMENT_SPLITTERS: Lazy<Regex> = Lazy::new(|| Regex::new("(,|;)").unwrap());
+// static SEGMENT_SPLITTERS: Lazy<Regex> = Lazy::new(|| Regex::new("[,;]").unwrap());
 
-pub(super) fn match_and_sanitize_segment_input(segment_input: &str) -> Option<String> {
+impl PassageSegments {
+    pub fn try_parse(segment_input: &str) -> Option<Self> {
+        let input = match_and_sanitize_segment_input(segment_input)?;
+        let segments = parse_reference_segments(&input);
+        Some(segments)
+    }
+}
+
+fn match_and_sanitize_segment_input(segment_input: &str) -> Option<String> {
     let segment_match = POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS
         .find_iter(segment_input)
         .next()?.as_str();
 
     // swap weird hyphens with normal dash
-    let input = &segment_match.replace("–", "-");
+    let input = &segment_match.replace(ALL_DASHES, "-");
 
     // input now only contains the following characters: [\d,:;-]
     let input = NON_SEGMENT_CHARACTERS.replace_all(&input, "").to_string();
@@ -38,41 +41,12 @@ pub(super) fn match_and_sanitize_segment_input(segment_input: &str) -> Option<St
     Some(input)
 }
 
-/// full chapters are only parsed if there are no verses provided
-pub(super) fn parse_full_chapters(segment_input: &str) -> Option<PassageSegments> {
-    todo!()
-}
-
-/// - This function is meant to parse the `1:1-4,5-7,2:2-3:4,6` in `Ephesians 1:1-4,5-7,2:2-3:4,6`
-/// - Don't pass it anything else please :)
-/**
-Passing `1` will result in
-```no_run
-[src/main.rs:27:5] parse_reference_segments("1") = [
-    ChapterVerse(
-        ChapterVerse {
-            chapter: 1,
-            verse: 1,
-        },
-    ),
-]
-```
-Passing `1:` will result in
-```no_run
-[src/main.rs:28:5] parse_reference_segments("1:") = [
-    ChapterVerse(
-        ChapterVerse {
-            chapter: 1,
-            verse: 1,
-        },
-    ),
-]
-```
-*/
-pub(super) fn parse_reference_segments(input: &str) -> PassageSegments {
+/// - This function is meant to parse the `1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8` in `John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8`
+/// - It expects input [`from match_and_sanitize_segment_input`]
+fn parse_reference_segments(input: &str) -> PassageSegments {
     // split at , or ; (because there is no uniform standard)
     // now I only have ranges (or a single verse)
-    let ranges: Vec<&str> = SEGMENT_SPLITTERS.split(input).collect();
+    let ranges: Vec<&str> = input.split(SEGMENT_SPLITTERS).collect();
     // dbg!(&ranges);
 
     // ALWAYS UPDATE THE CHAPTER SO I CAN USE IT WHEN ONLY VERSES ARE PROVIDED
