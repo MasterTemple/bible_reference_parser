@@ -2,7 +2,14 @@ use std::{collections::BTreeMap, ops::{Deref, DerefMut}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{overlap::OverlapsWith, segment::PassageSegment};
+use crate::{overlap::OverlapsWith, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment};
+
+pub type ChapterRangeMap<V> = OverlapMap<ChapterRange, V>;
+pub type ChapterVerseRangeMap<V> = OverlapMap<ChapterVerseRange, V>;
+pub type ChapterVerseMap<V> = OverlapMap<ChapterVerse, V>;
+pub type FullChapterRangeMap<V> = OverlapMap<FullChapterRange, V>;
+pub type FullChapterMap<V> = OverlapMap<FullChapter, V>;
+pub type PassageSegmentMap<V> = OverlapMap<PassageSegment, V>;
 
 pub trait OverlapKey: Ord + OverlapsWith + Into<PassageSegment> + Copy {}
 impl<K: Ord + OverlapsWith + Into<PassageSegment> + Copy> OverlapKey for K {}
