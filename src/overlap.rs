@@ -1,6 +1,6 @@
 use crate::segment::PassageSegment;
 
-pub struct VerseChapterVerseRange {
+pub struct ExplicitChapterVerseRange {
     start_chapter: usize,
     start_verse: usize,
     end_chapter: usize,
@@ -8,8 +8,8 @@ pub struct VerseChapterVerseRange {
 }
 
 impl PassageSegment {
-    fn verbosify(&self) -> VerseChapterVerseRange {
-        VerseChapterVerseRange {
+    fn explicify(&self) -> ExplicitChapterVerseRange {
+        ExplicitChapterVerseRange {
             start_chapter: self.get_starting_chapter(),
             start_verse: self.get_starting_verse(),
             end_chapter: self.get_ending_chapter(),
@@ -17,17 +17,9 @@ impl PassageSegment {
         }
     }
 
-    /// This is only meant to be used while running tests for bi-directionality
-    fn double_overlap(&self, other: PassageSegment) -> bool {
-        let does_overlap = self.overlaps_with(other);
-        let is_overlapped = other.overlaps_with(*self);
-        assert_eq!(does_overlap, is_overlapped);
-        does_overlap
-    }
-
     pub fn overlaps_with(&self, other: PassageSegment) -> bool {
-        let this = self.verbosify();
-        let other = other.verbosify();
+        let this = self.explicify();
+        let other = other.explicify();
         // checking overlap by checking if there is space between their edges
         !(
             // other ends before this starts (which is also this starts before other ends)
@@ -40,9 +32,18 @@ impl PassageSegment {
     }
 }
 
+
+
 #[cfg(test)]
 mod overlap_tests {
     use super::*;
+
+    fn double_overlap(this: PassageSegment, other: PassageSegment) -> bool {
+        let does_overlap = this.overlaps_with(other);
+        let is_overlapped = other.overlaps_with(this);
+        assert_eq!(does_overlap, is_overlapped);
+        does_overlap
+    }
 
     #[test]
     fn chapter_verse() {
@@ -54,18 +55,18 @@ mod overlap_tests {
 
         // true
         // 3:3
-        assert!(this.double_overlap(PassageSegment::chapter_verse(3, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse(3, 3)));
 
         // false
         // 2:3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse(2, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse(2, 3)));
         // 3:2
-        assert!(!this.double_overlap(PassageSegment::chapter_verse(3, 2)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse(3, 2)));
 
         // 4:3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse(4, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse(4, 3)));
         // 3:4
-        assert!(!this.double_overlap(PassageSegment::chapter_verse(3, 4)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse(3, 4)));
 
         // ----------------- //
         // ChapterVerseRange //
@@ -73,33 +74,33 @@ mod overlap_tests {
 
         // true
         // 3:3-3
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 3, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 3, 3)));
 
         // 3:1-3
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 1, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 1, 3)));
         // 3:3-4
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 3, 4)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 3, 4)));
         // 3:1-4
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 1, 4)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 1, 4)));
 
         // false
         // 1:3-3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 3, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(1, 3, 3)));
         // 1:1-3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 1, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(1, 1, 3)));
         // 1:1-4
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 1, 4)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(1, 1, 4)));
         // 1:3-4
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(1, 3, 4)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(1, 3, 4)));
 
         // 4:3-3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 3, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(4, 3, 3)));
         // 4:1-3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 1, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(4, 1, 3)));
         // 4:1-4
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 1, 4)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(4, 1, 4)));
         // 4:3-4
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(4, 3, 4)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(4, 3, 4)));
 
         // ------------ //
         // ChapterRange //
@@ -107,25 +108,25 @@ mod overlap_tests {
 
         // true
         // 3:3-3-3
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 3, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 3, 3)));
 
         // 1:1-3-3
-        assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(1, 1, 3, 3)));
         // 1:3-3-3
-        assert!(this.double_overlap(PassageSegment::chapter_range(1, 3, 3, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(1, 3, 3, 3)));
 
         // 3:3-4-1
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 1)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 4, 1)));
         // 3:3-4-3
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 4, 3)));
         // 3:3-4-4
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 4)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 4, 4)));
 
         // false
         // 3:4-4-4
-        assert!(!this.double_overlap(PassageSegment::chapter_range(3, 4, 4, 4)));
+        assert!(!double_overlap(this, PassageSegment::chapter_range(3, 4, 4, 4)));
         // 1:1-3-1
-        assert!(!this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 1)));
+        assert!(!double_overlap(this, PassageSegment::chapter_range(1, 1, 3, 1)));
 
         // ----------- //
         // FullChapter //
@@ -133,13 +134,13 @@ mod overlap_tests {
 
         // true
         // 3
-        assert!(this.double_overlap(PassageSegment::full_chapter(3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter(3)));
 
         // false
         // 2
-        assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(2)));
         // 4
-        assert!(!this.double_overlap(PassageSegment::full_chapter(4)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(4)));
 
         // ---------------- //
         // FullChapterRange //
@@ -147,19 +148,19 @@ mod overlap_tests {
 
         // true
         // 3-3
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(3, 3)));
         // 1-3
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 3)));
         // 3-4
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(3, 4)));
         // 1-4
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 4)));
 
         // false
         // 1-2
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(1, 2)));
         // 4-5
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(4, 5)));
     }
 
     #[test]
@@ -172,33 +173,33 @@ mod overlap_tests {
 
         // true
         // 3:3-7
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 3, 7)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 3, 7)));
 
         // 3:1-3
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 1, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 1, 3)));
         // 3:4-6
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 4, 6)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 4, 6)));
         // 3:7-8
-        assert!(this.double_overlap(PassageSegment::chapter_verse_range(3, 7, 8)));
+        assert!(double_overlap(this, PassageSegment::chapter_verse_range(3, 7, 8)));
 
         // false
         // 2:3-7
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 3, 7)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 3, 7)));
         // 2:1-3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 1, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 1, 3)));
         // 2:4-6
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 4, 6)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 4, 6)));
         // 2:7-8
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 7, 8)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 7, 8)));
 
         // 2:3-7
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 3, 7)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 3, 7)));
         // 2:1-3
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 1, 3)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 1, 3)));
         // 2:4-6
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 4, 6)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 4, 6)));
         // 2:7-8
-        assert!(!this.double_overlap(PassageSegment::chapter_verse_range(2, 7, 8)));
+        assert!(!double_overlap(this, PassageSegment::chapter_verse_range(2, 7, 8)));
 
         // ------------ //
         // ChapterRange //
@@ -206,26 +207,26 @@ mod overlap_tests {
 
         // true
         // 3:3-3-7
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 3, 7)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 3, 7)));
 
         // 1:1-3-3
-        assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(1, 1, 3, 3)));
         // 1:1-3-7
-        assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 7)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(1, 1, 3, 7)));
 
         // 3:3-4-4
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 4)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 4, 4)));
         // 3:7-4-4
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 7, 4, 4)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 7, 4, 4)));
 
         // 3:4-3-6
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 4, 3, 6)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 4, 3, 6)));
 
         // false
         // 1:1-3-2
-        assert!(!this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 2)));
+        assert!(!double_overlap(this, PassageSegment::chapter_range(1, 1, 3, 2)));
         // 3:8-4-4
-        assert!(!this.double_overlap(PassageSegment::chapter_range(3, 8, 4, 4)));
+        assert!(!double_overlap(this, PassageSegment::chapter_range(3, 8, 4, 4)));
 
         // ----------- //
         // FullChapter //
@@ -233,13 +234,13 @@ mod overlap_tests {
 
         // true
         // 3
-        assert!(this.double_overlap(PassageSegment::full_chapter(3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter(3)));
 
         // false
         // 2
-        assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(2)));
         // 4
-        assert!(!this.double_overlap(PassageSegment::full_chapter(4)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(4)));
 
         // ---------------- //
         // FullChapterRange //
@@ -247,19 +248,19 @@ mod overlap_tests {
 
         // true
         // 3-3
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(3, 3)));
         // 1-3
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 3)));
         // 3-4
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(3, 4)));
         // 1-4
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 4)));
 
         // false
         // 1-2
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(1, 2)));
         // 4-5
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(4, 5)));
       
     }
 
@@ -273,28 +274,28 @@ mod overlap_tests {
 
         // true
         // 3:3-4-4
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 4, 4)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 4, 4)));
 
         // 1:1-3-3
-        assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(1, 1, 3, 3)));
         // 1:1-4-4
-        assert!(this.double_overlap(PassageSegment::chapter_range(1, 1, 4, 4)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(1, 1, 4, 4)));
 
         // 3:3-5-5
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 3, 5, 5)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 3, 5, 5)));
         // 4:4-5-5
-        assert!(this.double_overlap(PassageSegment::chapter_range(4, 4, 5, 5)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(4, 4, 5, 5)));
 
         // 3:4-3-6
-        assert!(this.double_overlap(PassageSegment::chapter_range(3, 4, 3, 6)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(3, 4, 3, 6)));
         // 4:1-4-3
-        assert!(this.double_overlap(PassageSegment::chapter_range(4, 1, 4, 3)));
+        assert!(double_overlap(this, PassageSegment::chapter_range(4, 1, 4, 3)));
 
         // false
         // 1:1-3-2
-        assert!(!this.double_overlap(PassageSegment::chapter_range(1, 1, 3, 2)));
+        assert!(!double_overlap(this, PassageSegment::chapter_range(1, 1, 3, 2)));
         // 4:5-5-5
-        assert!(!this.double_overlap(PassageSegment::chapter_range(4, 5, 5, 5)));
+        assert!(!double_overlap(this, PassageSegment::chapter_range(4, 5, 5, 5)));
 
         // ----------- //
         // FullChapter //
@@ -302,15 +303,15 @@ mod overlap_tests {
 
         // true
         // 3
-        assert!(this.double_overlap(PassageSegment::full_chapter(3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter(3)));
         // 4
-        assert!(this.double_overlap(PassageSegment::full_chapter(4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter(4)));
 
         // false
         // 2
-        assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(2)));
         // 5
-        assert!(!this.double_overlap(PassageSegment::full_chapter(5)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(5)));
 
         // ---------------- //
         // FullChapterRange //
@@ -318,19 +319,19 @@ mod overlap_tests {
 
         // true
         // 3-4
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(3, 4)));
         // 1-3
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 3)));
         // 4-5
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(4, 5)));
         // 1-5
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 5)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 5)));
 
         // false
         // 1-2
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(1, 2)));
         // 5-6
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(5, 6)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(5, 6)));
     }
 
     #[test]
@@ -343,13 +344,13 @@ mod overlap_tests {
 
         // true
         // 3
-        assert!(this.double_overlap(PassageSegment::full_chapter(3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter(3)));
 
         // false
         // 2
-        assert!(!this.double_overlap(PassageSegment::full_chapter(2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(2)));
         // 4
-        assert!(!this.double_overlap(PassageSegment::full_chapter(4)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter(4)));
 
         // ---------------- //
         // FullChapterRange //
@@ -357,15 +358,15 @@ mod overlap_tests {
 
         // true
         // 1-3
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 3)));
         // 3-4
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(3, 4)));
 
         // false
         // 1-2
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(1, 2)));
         // 4-6
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(4, 6)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(4, 6)));
     }
 
     #[test]
@@ -378,19 +379,19 @@ mod overlap_tests {
 
         // true
         // 3-4
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(3, 4)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(3, 4)));
         // 1-3
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 3)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 3)));
         // 4-5
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(4, 5)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(4, 5)));
         // 1-5
-        assert!(this.double_overlap(PassageSegment::full_chapter_range(1, 5)));
+        assert!(double_overlap(this, PassageSegment::full_chapter_range(1, 5)));
 
         // false
         // 1-2
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(1, 2)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(1, 2)));
         // 5-6
-        assert!(!this.double_overlap(PassageSegment::full_chapter_range(5, 6)));
+        assert!(!double_overlap(this, PassageSegment::full_chapter_range(5, 6)));
       
     }
 }
