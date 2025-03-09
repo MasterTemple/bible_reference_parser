@@ -26,9 +26,9 @@ impl PassageSegments {
         Self(vec![])
     }
 
-    fn overlaps_segment(&self, other: impl Into<PassageSegment>) -> bool {
+    pub fn overlaps_segment(&self, other: impl Into<PassageSegment>) -> bool {
         let other = other.into();
-        self.iter().any(|this| this.overlaps_with(other))
+        self.iter().any(|this| this.overlaps_segment(other))
     }
 
     /// - This can be better optimized, but that is not a priority right now

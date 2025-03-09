@@ -46,7 +46,7 @@ A segment is a unit or contiguous range of verses or chapters
 ### Overlap
 
 - Check if segments of any kind overlap with segments of any other kind
-- Check if passages (sets of segments) overlap with other passages
+- Check if passages (sets of segments) overlap with other passages or individual segments
 
 ## Installation
 
@@ -61,16 +61,34 @@ bible_reference_parser = { git = "https://github.com/MasterTemple/bible_referenc
 ### Check Overlap
 
 ```rust
+// Overlapping Segments
+
 // John 1:3
 let first = ChapterVerse::new(1, 3);
 // John 2
 let second = FullChapter::new(2);
-println!("{}", first.overlaps_with(second)); // false
+println!("{}", first.overlaps_segment(second)); // false
 
 // John 2:7
 let first: ChapterVerse = "2:7".parse().unwrap(); // or ChapterVerse::new(2, 7)
 // John 2:4-3:1
 let second = ChapterRange::parse("2:4-3:1").unwrap(); // or ChapterRange::new(2, 4, 3, 1)
+println!("{}", first.overlaps_segment(second)); // true
+
+// Segment List containing Segment
+
+// John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8
+let segments = PassageSegments::parse("1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8").unwrap();
+// John 5:3-4
+let segment = ChapterVerseRange::parse("5:3-4").unwrap(); // or ChapterVerseRange::new(3, 3, 4)
+println!("{}", segments.overlaps_segment(segment)); // true
+
+// Segment List containing Segment
+
+// John 1:1-3,5-7
+let first = PassageSegments::parse("1:1-3,5-7").unwrap();
+// John 1:4-6
+let second = PassageSegments::parse("1:4-6").unwrap();
 println!("{}", first.overlaps_with(second)); // true
 ```
 

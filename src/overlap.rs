@@ -33,7 +33,7 @@ impl PassageSegment {
 }
 
 pub trait OverlapsWith: Into<PassageSegment> {
-    fn overlaps_with(self, other: impl Into<PassageSegment>) -> bool {
+    fn overlaps_segment(self, other: impl Into<PassageSegment>) -> bool {
         let other_seg: PassageSegment = other.into();
         let this_seg: PassageSegment  = self.into();
         this_seg.segments_have_overlap(&other_seg)

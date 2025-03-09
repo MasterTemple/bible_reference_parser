@@ -16,8 +16,6 @@ static NON_SEGMENT_CHARACTERS: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^\d,:;-]
 
 static TRAILING_NON_DIGITS: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\D+$)").unwrap());
 
-// static SEGMENT_SPLITTERS: Lazy<Regex> = Lazy::new(|| Regex::new("[,;]").unwrap());
-
 impl PassageSegments {
     pub fn parse(segment_input: &str) -> Result<Self, String> {
         let input = match_and_sanitize_segment_input(segment_input).ok_or_else(|| String::from("Failed to parse segments"))?;
