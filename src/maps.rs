@@ -36,6 +36,30 @@ pub struct BookPassageMap<V> {
     full_chapter_map: FullChapterMap<V>,
 }
 
+impl<V> BookPassageMap<V> {
+    /// - But what about updates when I don't want to completely write over the data?
+    /// - How can I make an interface that would allow for V to be mutated?
+    pub fn insert(&mut self, key: PassageSegment, value: V) -> Option<V> {
+        match key {
+            PassageSegment::ChapterVerse(key) => self.chapter_verse_map.insert(key, value),
+            PassageSegment::ChapterVerseRange(key) => self.chapter_verse_range_map.insert(key, value),
+            PassageSegment::ChapterRange(key) => self.chapter_range_map.insert(key, value),
+            PassageSegment::FullChapter(key) => self.full_chapter_map.insert(key, value),
+            PassageSegment::FullChapterRange(key) => self.full_chapter_range_map.insert(key, value),
+        }
+    }
+
+    pub fn update(&mut self, key: PassageSegment) -> Option<&mut V> {
+        match key {
+            PassageSegment::ChapterVerse(key) => self.chapter_verse_map.get_mut(&key),
+            PassageSegment::ChapterVerseRange(key) => self.chapter_verse_range_map.get_mut(&key),
+            PassageSegment::ChapterRange(key) => self.chapter_range_map.get_mut(&key),
+            PassageSegment::FullChapter(key) => self.full_chapter_map.get_mut(&key),
+            PassageSegment::FullChapterRange(key) => self.full_chapter_range_map.get_mut(&key),
+        }
+    }
+}
+
 // I'm pretty sure these should take the general key
 impl<V> BookPassageMap<V> {
     pub fn get_chapter_range_overlap(&self, key: &impl OverlapKey) -> Vec<(&ChapterRange, &V)> {
