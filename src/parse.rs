@@ -62,10 +62,6 @@ macro_rules! impl_parsable_segment {
     };
 }
 
-// impl ParsableSegment for PassageSegment {
-//     const EXPECTED_FORMAT: &'static str;
-// }
-
 impl PassageSegment {
     pub fn parse(input: &str) -> Result<Self, String> {
         input.parse::<Self>()
