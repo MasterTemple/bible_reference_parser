@@ -141,6 +141,27 @@ impl<K: OverlapKey, V> OverlapMap<K, V> {
 
     I think that my heuristics for ordering probably only work on heterogeneous
     variants, so I probably want to just have different maps anyway
+
+    Alright, so
+    I can break the left search when I know that all segments to the left end before this segment
+    I can break the right search when I know that all segments to the right start after this segment
+
+    Given an ordering priority of `start chapter > start verse > end chapter > end verse`, I can break right search
+
+    I think I can only have 1 heuristic at a time (unless perhaps I split them up?)
+
+    This is why I should probably use nested maps, based on the structure
+
+    ```rust
+    // chapter:verse (Map<chapter, Map<verse, Vec<ref>>>)
+    chapter_verse: BTreeMap<u8, BTreeMap<u8, Vec<RelatedMediaRef>>>,
+    // chapter:start_verse-end_verse (Map<chapter, Map<(start_verse, end_verse), ref>>)
+    chapter_verse_range: BTreeMap<u8, OverlapMap<RangePair, Vec<RelatedMediaRef>>>,
+    // start_chapter:start_verse-end_chapter:end_verse
+    chapter_range: OverlapMap<ChapterRangePair, Vec<RelatedMediaRef>>,
+    full_chapter: OverlapMap<u8, Vec<RelatedMediaRef>>,
+    full_chapter_range: OverlapMap<(u8, u8), Vec<RelatedMediaRef>>,
+    ```
     */
     pub fn get_overlapping_broken(&self, key: &K) -> Vec<(&K, &V)> {
         // so I convert the key only once

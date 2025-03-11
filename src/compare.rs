@@ -1,19 +1,19 @@
 pub trait SegmentCompare: Sized {
-    fn get_starting_verse(&self) -> u8;
+    fn starting_verse(&self) -> u8;
 
-    fn get_starting_chapter(&self) -> u8;
+    fn starting_chapter(&self) -> u8;
 
-    fn get_ending_verse(&self) -> Option<u8>;
+    fn ending_verse(&self) -> Option<u8>;
 
-    fn get_ending_chapter(&self) -> u8;
+    fn ending_chapter(&self) -> u8;
 
     fn ends_before(&self, other: &impl SegmentCompare) -> bool {
         // it finishes in a chapter before the other one
-        self.get_ending_chapter() < other.get_starting_chapter()
+        self.ending_chapter() < other.starting_chapter()
         // or it is in the same chapter and this ending verse < other starting verse
         || (
-            self.get_ending_chapter() == other.get_starting_chapter()
-            && self.get_ending_verse().is_some_and(|ending_verse| ending_verse < other.get_starting_verse())
+            self.ending_chapter() == other.starting_chapter()
+            && self.ending_verse().is_some_and(|ending_verse| ending_verse < other.starting_verse())
         )
     }
 
@@ -28,13 +28,18 @@ pub trait SegmentCompare: Sized {
 
 // impl<T: SegmentCompare> PartialOrd for T {
 //     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         todo!()
+//         Some(
+//             self.get_starting_chapter().cmp(&other.get_starting_chapter())
+//             .then(self.get_starting_verse().cmp(&other.get_starting_verse()))
+//             .then(self.get_ending_chapter().cmp(&other.get_ending_chapter()))
+//             .then(self.get_ending_verse().cmp(&other.get_ending_verse()))
+//         )
 //     }
 // }
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse::ParsableSegment, passage_segments::chapter_verse_range::ChapterVerseRange, segment::PassageSegment};
+    use crate::{segment::PassageSegment};
 
     use super::*;
 

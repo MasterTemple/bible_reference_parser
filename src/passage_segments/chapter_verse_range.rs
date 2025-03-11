@@ -68,19 +68,19 @@ impl FromStr for ChapterVerseRange {
 }
 
 impl SegmentCompare for ChapterVerseRange {
-    fn get_starting_chapter(&self) -> u8 {
+    fn starting_chapter(&self) -> u8 {
         self.chapter
     }
 
-    fn get_starting_verse(&self) -> u8 {
+    fn starting_verse(&self) -> u8 {
         self.verses.start
     }
 
-    fn get_ending_chapter(&self) -> u8 {
+    fn ending_chapter(&self) -> u8 {
         self.chapter
     }
 
-    fn get_ending_verse(&self) -> Option<u8> {
+    fn ending_verse(&self) -> Option<u8> {
         Some(self.verses.end)
     }
 }
