@@ -6,16 +6,16 @@ use crate::passage_segments::chapter_range::ChapterRange;
 use crate::passage_segments::chapter_verse::ChapterVerse;
 use crate::passage_segments::chapter_verse_range::ChapterVerseRange;
 use crate::passage_segments::full_chapter::FullChapter;
-use crate::passage_segments::full_chapter_range::{self, FullChapterRange};
+use crate::passage_segments::full_chapter_range::FullChapterRange;
 use crate::segment::PassageSegment;
 
 #[derive(Debug, Default)]
 pub struct GroupedContent<'a, Container: Debug + Default> {
-    chapter_verse: Vec<(ChapterVerse, &'a Container)>,
-    chapter_verse_range: Vec<(ChapterVerseRange, &'a Container)>,
-    chapter_range: Vec<(ChapterRange, &'a Container)>,
-    full_chapter: Vec<(FullChapter, &'a Container)>,
-    full_chapter_range: Vec<(FullChapterRange, &'a Container)>,
+    pub chapter_verse: Vec<(ChapterVerse, &'a Container)>,
+    pub chapter_verse_range: Vec<(ChapterVerseRange, &'a Container)>,
+    pub chapter_range: Vec<(ChapterRange, &'a Container)>,
+    pub full_chapter: Vec<(FullChapter, &'a Container)>,
+    pub full_chapter_range: Vec<(FullChapterRange, &'a Container)>,
 }
 
 /// It requires default not because the data type must impl Default, but it's container should
@@ -153,9 +153,8 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
 
-    use crate::{compare::SegmentCompare, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}};
+    use crate::passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange};
 
     use super::BookOrganizer;
 
