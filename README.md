@@ -95,42 +95,34 @@ let _: PassageSegment = "1:2-3".parse()?;
 FullChapter::try_from(PassageSegment::chapter_verse(1, 2))?; // FullChapter
 // coerce to actual type of a segment: John 1:2-2 -> John 1:2
 ChapterVerseRange::parse("1:2-2")?.actual(); // ChapterVerse
+
+// Parse multiple contextually-joined segments
+PassageSegments::parse("1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8")?;
+PassageSegments::parse("   1, 2-4; 5:1–3,5,7—9,12—6:6,  7:7⸺  8:8, ")?;
 ```
 
 ### Check Overlap
 
 ```rust
-// Note: I am using different methods of creating the segment to show different ways this library can be used
+let psg = |p: &str| PassageSegment::parse(p).unwrap(); // shorthand for single passage
 
-// Overlapping Segments
+// check individual segment overlap
+psg("1:1").overlaps_with(&psg("1:2")); // false
+psg("1:1-3").overlaps_with(&psg("1:2")); // true
+psg("1:1-3").overlaps_with(&psg("1:3-4")); // true
 
-// John 1:3
-let first = ChapterVerse::new(1, 3);
-// John 2
-let second = FullChapter::new(2);
-println!("{}", first.overlaps_segment(second)); // false
+let first = PassageSegments::parse("1:1-3, 4; 2:1-3")?;
+let second = PassageSegments::parse("2:2-8; 3:1-4:1")?;
+let third = PassageSegments::parse("2:9-12")?;
 
-// John 2:7
-let first: ChapterVerse = "2:7".parse()?;
-// John 2:4-3:1
-let second = ChapterRange::parse("2:4-3:1")?;
-println!("{}", first.overlaps_segment(second)); // true
+// check if segment list has any overlap with a single segment
+first.overlaps_with(&psg("1:1")); // true
+second.overlaps_with(&psg("1:1")); // false
 
-// Segment List containing Segment
-
-// John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8
-let segments = PassageSegments::parse("1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8")?;
-// John 5:3-4
-let segment = PassageSegment::parse("5:3-4")?;
-println!("{}", segments.overlaps_segment(segment)); // true
-
-// Segment List overlapping other Segment List
-
-// John 1:1-3,5-7
-let first = PassageSegments::parse("1:1-3,5-7")?;
-// John 1:4-6
-let second = PassageSegments::parse("1:4-6")?;
-println!("{}", first.overlaps_with(second)); // true
+// check for any overlapping segments between segment list
+first.contains_overlap(&second); // true
+first.contains_overlap(&third); // false
+second.contains_overlap(&third); // false
 ```
 
 ### Map Overlap
@@ -142,107 +134,163 @@ I have provided several aliases for the `OverlapMap` which allows retreival of a
 > because **from any selected Scripture reference, you can access all stored overlapping content**
 
 ```rust
-// This data could be anything: user notes, highlights, sermons, documents, ...
-let mut map: ChapterVerseRangeMap<()> = ChapterVerseRangeMap::new();
+let psg = |p: &str| PassageSegment::parse(p).unwrap();
+// the best practice would be to have one [`PassageOrganizer`] per book
+// but books are beyond the scope of this module
+let mut data = PassageOrganizer::<MyContainer>::new();
 
-map.insert(ChapterVerseRange::parse("1:1-2")?, ());
-map.insert(ChapterVerseRange::parse("1:4-5")?, ());
-map.insert(ChapterVerseRange::parse("1:6-7")?, ());
-map.insert(ChapterVerseRange::parse("2:1-2")?, ());
-
-let key = ChapterVerseRange::parse("1:2-4")?;
-println!("{:?}", map.get_overlapping(&key));
-/* [
-    (ChapterVerseRange { chapter: 1, verses: RangePair { start: 1, end: 2 } }, ()),
-    (ChapterVerseRange { chapter: 1, verses: RangePair { start: 4, end: 5 } }, ())
-] */
-```
-
-### Parse
+// modify returns a mutable reference to whatever your container is
+// if the container is not initialized, it initializes it 
+*data.modify(psg("1:1")) = vec![MyData::Note("Here is a note on 1:1".into())];
+data.modify(psg("1:2")).push(MyData::Note("Here is a note on 1:2".into()));
+data.modify(psg("1")).push(MyData::Note("Some thoughts on chapter 1".into()));
+data.modify(psg("1:2-3")).push(MyData::Tag("#some-tag".into()));
 
 ```rust
-let segments = PassageSegments::try_parse("1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8");
-println!("{:#?}", segments); // see below
+// get content of a specific proximity
+println!("{:#?}", data.get_chapter_verse_content(&psg("1:2")));
 ```
-<details>
+```
+[
+    (
+        ChapterVerse {
+            chapter: 1,
+            verse: 2,
+        },
+        [
+            Note(
+                "Here is a note on 1:2",
+            ),
+        ],
+    ),
+]
+```
 
-<summary>Output</summary>
+```rust
+// get all content
+println!("{:#?}", data.get_all_content(&psg("1:1-3")).collect_vec());
+```
 
-```ron
-PassageSegments(
-    [
+```
+[
+    (
+        ChapterVerse(
+            ChapterVerse {
+                chapter: 1,
+                verse: 1,
+            },
+        ),
+        [
+            Note(
+                "Here is a note on 1:1",
+            ),
+        ],
+    ),
+    (
+        ChapterVerse(
+            ChapterVerse {
+                chapter: 1,
+                verse: 2,
+            },
+        ),
+        [
+            Note(
+                "Here is a note on 1:2",
+            ),
+        ],
+    ),
+    (
+        ChapterVerseRange(
+            ChapterVerseRange {
+                chapter: 1,
+                verses: RangePair {
+                    start: 2,
+                    end: 3,
+                },
+            },
+        ),
+        [
+            Tag(
+                "#some-tag",
+            ),
+        ],
+    ),
+    (
         FullChapter(
             FullChapter {
                 chapter: 1,
             },
         ),
-        FullChapterRange(
-            FullChapterRange(
-                RangePair {
-                    start: FullChapter {
-                        chapter: 2,
-                    },
-                    end: FullChapter {
-                        chapter: 4,
-                    },
-                },
+        [
+            Note(
+                "Some thoughts on chapter 1",
             ),
+        ],
+    ),
+]
+```
+
+```rust
+// get all content grouped by proximity
+println!("{:#?}", data.get_all_content_grouped(&psg("1:1-3")));
+```
+
+```
+GroupedContent {
+    chapter_verse: [
+        (
+            ChapterVerse {
+                chapter: 1,
+                verse: 1,
+            },
+            [
+                Note(
+                    "Here is a note on 1:1",
+                ),
+            ],
         ),
-        ChapterVerseRange(
+        (
+            ChapterVerse {
+                chapter: 1,
+                verse: 2,
+            },
+            [
+                Note(
+                    "Here is a note on 1:2",
+                ),
+            ],
+        ),
+    ],
+    chapter_verse_range: [
+        (
             ChapterVerseRange {
-                chapter: 5,
+                chapter: 1,
                 verses: RangePair {
-                    start: 1,
+                    start: 2,
                     end: 3,
                 },
             },
-        ),
-        ChapterVerse(
-            ChapterVerse {
-                chapter: 5,
-                verse: 5,
-            },
-        ),
-        ChapterVerseRange(
-            ChapterVerseRange {
-                chapter: 5,
-                verses: RangePair {
-                    start: 7,
-                    end: 9,
-                },
-            },
-        ),
-        ChapterRange(
-            ChapterRange(
-                RangePair {
-                    start: ChapterVerse {
-                        chapter: 5,
-                        verse: 12,
-                    },
-                    end: ChapterVerse {
-                        chapter: 6,
-                        verse: 6,
-                    },
-                },
-            ),
-        ),
-        ChapterRange(
-            ChapterRange(
-                RangePair {
-                    start: ChapterVerse {
-                        chapter: 7,
-                        verse: 7,
-                    },
-                    end: ChapterVerse {
-                        chapter: 8,
-                        verse: 8,
-                    },
-                },
-            ),
+            [
+                Tag(
+                    "#some-tag",
+                ),
+            ],
         ),
     ],
-),
+    chapter_range: [],
+    full_chapter: [
+        (
+            FullChapter {
+                chapter: 1,
+            },
+            [
+                Note(
+                    "Some thoughts on chapter 1",
+                ),
+            ],
+        ),
+    ],
+    full_chapter_range: [],
+}
 ```
-
-</details>
 

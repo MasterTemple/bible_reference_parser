@@ -26,14 +26,14 @@ impl PassageSegments {
         Self(vec![])
     }
 
-    pub fn overlaps_segment(&self, other: impl Into<PassageSegment>) -> bool {
-        let other = other.into();
-        self.iter().any(|this| this.overlaps_with(&other))
+    // pub fn overlaps_segment(&self, other: impl Into<PassageSegment>) -> bool {
+    pub fn overlaps_with(&self, other: &impl SegmentCompare) -> bool {
+        self.iter().any(|this| this.overlaps_with(other))
     }
 
     /// - This can be better optimized, but that is not a priority right now
     /// - I just need some way to order the segments and do it in linear time
-    pub fn overlaps_with(&self, other: PassageSegments) -> bool {
-        self.iter().any(|this| other.overlaps_segment(*this))
+    pub fn contains_overlap(&self, other: &PassageSegments) -> bool {
+        self.iter().any(|this| other.overlaps_with(this))
     }
 }
