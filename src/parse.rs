@@ -1,5 +1,6 @@
-use std::str::FromStr;
+use std::{iter::Peekable, str::{Chars, FromStr}};
 
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use crate::{passage_segments::chapter_verse::ChapterVerse, segment::PassageSegment, segments::PassageSegments};
@@ -32,35 +33,85 @@ impl FromStr for PassageSegments {
     }
 }
 
-pub trait ParsableSegment: FromStr {
+pub(crate) trait SegmentParseMethods: ParsableSegment {
+    fn expect_done(chars: &mut Peekable<Chars<'_>>) -> Result<(), String> {
+        if chars.next().is_none() {
+            Ok(())
+        } else {
+            Err(format!("Expected format '{}'", Self::EXPECTED_FORMAT))
+        }
+    }
+
+    fn expect_char(chars: &mut Peekable<Chars<'_>>, char: char) -> Result<(), String> {
+        if dbg!(chars.next()).is_some_and(|c| c == char) {
+            Ok(())
+        } else {
+            Err(format!("Expected format '{}'", Self::EXPECTED_FORMAT))
+        }
+    }
+
+    /// It must be peekable to not consume the following element
+    fn take_number(chars: &mut Peekable<Chars<'_>>) -> Result<u8, String> {
+        dbg!(dbg!(chars.peeking_take_while(|c| c.is_numeric()).join("")).parse::<u8>())
+            .map_err(|_| format!("Expected format '{}'", Self::EXPECTED_FORMAT))
+    }
+}
+impl<T: ParsableSegment> SegmentParseMethods for T { }
+
+// TryFrom<PassageSegment>
+// pub trait ParsableSegment: FromStr<Err = String> {
+pub trait ParsableSegment: Sized + TryFrom<PassageSegment, Error = String> {
     const EXPECTED_FORMAT: &'static str;
-    fn parse(input: &str) -> Result<Self, <Self as FromStr>::Err>  {
-        input.parse::<Self>()
+
+    /// - This is meant to be a strict match because this is to be highly performant method (since
+    /// this will be used for serialization)
+    /// - If you would like a 'forgiving' parse method, use [`ParsableSegment::parse`]
+    /// which will call this method, but if it fails, then try to parse all segments,
+    /// take the first one, and coerce it when able
+    fn parse_strict(input: &str) -> Result<Self, String>;
+
+    /// - This first calls [`ParsableSegment::parse_strict`] and if it fails, tries parsing
+    /// entire set of passage segments of all kinds (with all the character replacements)
+    /// and then match on the first segment or try and coerce it into the desired type
+    fn parse(input: &str) -> Result<Self, String>  {
+        Self::parse_strict(input).or_else(|_| {
+            let segments = PassageSegments::parse(input).map_err(|_| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
+            if segments.is_empty() { Err(String::from("No segments found"))? }
+            Self::try_from(segments[0])
+        })
     }
 }
 
-#[macro_export]
-macro_rules! impl_parsable_segment {
-    ($name:ident, $fmt: literal) => {
-        impl crate::parse::ParsableSegment for $name {
-            const EXPECTED_FORMAT: &'static str = $fmt;
-        }
+// impl<T: ParsableSegment> FromStr for T {
+//     type Err = String;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         T::parse(s)
+//     }
+// }
 
-        impl std::str::FromStr for $name {
-            type Err = String;
-
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                use crate::parse::ParsableSegment;
-                let segments = crate::segments::PassageSegments::parse(s).map_err(|_| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
-                if segments.is_empty() { Err(String::from("No segments found"))? }
-                Ok(match segments[0] {
-                    crate::segment::PassageSegment::$name(this) => this,
-                    _ => Err(format!("Parsed incorrect format. Expected format '{}'", Self::EXPECTED_FORMAT))?,
-                })
-            }
-        }
-    };
-}
+// #[macro_export]
+// macro_rules! impl_parsable_segment {
+//     ($name:ident, $fmt: literal) => {
+//         impl crate::parse::ParsableSegment for $name {
+//             const EXPECTED_FORMAT: &'static str = $fmt;
+//         }
+//
+//         impl std::str::FromStr for $name {
+//             type Err = String;
+//
+//             fn from_str(s: &str) -> Result<Self, Self::Err> {
+//                 use crate::parse::ParsableSegment;
+//                 let segments = crate::segments::PassageSegments::parse(s).map_err(|_| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
+//                 if segments.is_empty() { Err(String::from("No segments found"))? }
+//                 Ok(match segments[0] {
+//                     crate::segment::PassageSegment::$name(this) => this,
+//                     _ => Err(format!("Parsed incorrect format. Expected format '{}'", Self::EXPECTED_FORMAT))?,
+//                 })
+//             }
+//         }
+//     };
+// }
 
 impl PassageSegment {
     pub fn parse(input: &str) -> Result<Self, String> {
