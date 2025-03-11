@@ -1,6 +1,6 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{fmt::{Debug, Display}, str::FromStr};
-use crate::{parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
+use crate::{compare::SegmentCompare, parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
 use super::range_pair::RangePair;
 
 /// - This is a range of verse references within a single chapter
@@ -64,6 +64,24 @@ impl FromStr for ChapterVerseRange {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::parse(s)
+    }
+}
+
+impl SegmentCompare for ChapterVerseRange {
+    fn get_starting_chapter(&self) -> u8 {
+        self.chapter
+    }
+
+    fn get_starting_verse(&self) -> u8 {
+        self.verses.start
+    }
+
+    fn get_ending_chapter(&self) -> u8 {
+        self.chapter
+    }
+
+    fn get_ending_verse(&self) -> Option<u8> {
+        Some(self.verses.end)
     }
 }
 

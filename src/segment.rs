@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 
-use crate::passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange};
+use crate::{compare::SegmentCompare, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}};
 
 /// Remember, these correspond to
-/// ```
+/// ```text
 ///                `Ephesians 1:1-4,5-7,2:2-3:4,6`
 ///                          |     |   |       | |
 ///                ----------+     |   |       | |
@@ -52,41 +52,43 @@ impl PartialOrd for PassageSegment {
 
 // Helpful methods for accessing data
 impl PassageSegment {
-    pub fn get_starting_verse(&self) -> u8 {
-        match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.verse,
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.verses.start,
-            PassageSegment::ChapterRange(book_range) => book_range.start.verse,
-            PassageSegment::FullChapter(_) | PassageSegment::FullChapterRange(_) => 1,
-        }
-    }
-
     pub fn get_starting_chapter(&self) -> u8 {
         match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.chapter,
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.chapter,
-            PassageSegment::ChapterRange(book_range) => book_range.start.chapter,
-            PassageSegment::FullChapter(full_chapter) => full_chapter.chapter,
-            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.start.chapter,
+            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_starting_chapter(),
+            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_starting_chapter(),
+            PassageSegment::ChapterRange(book_range) => book_range.get_starting_chapter(),
+            PassageSegment::FullChapter(full_chapter) => full_chapter.get_starting_chapter(),
+            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_starting_chapter(),
         }
     }
 
-    pub fn get_ending_verse(&self) -> Option<u8> {
-        Some(match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.verse,
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.verses.end,
-            PassageSegment::ChapterRange(book_range) => book_range.end.verse,
-            PassageSegment::FullChapter(_) | PassageSegment::FullChapterRange(_) => None?,
-        })
+    pub fn get_starting_verse(&self) -> u8 {
+        match self {
+            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_starting_verse(),
+            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_starting_verse(),
+            PassageSegment::ChapterRange(book_range) => book_range.get_starting_verse(),
+            PassageSegment::FullChapter(full_chapter) => full_chapter.get_starting_verse(),
+            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_starting_verse(),
+        }
     }
 
     pub fn get_ending_chapter(&self) -> u8 {
         match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.chapter,
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.chapter,
-            PassageSegment::ChapterRange(book_range) => book_range.end.chapter,
-            PassageSegment::FullChapter(full_chapter) => full_chapter.chapter,
-            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.end.chapter,
+            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_ending_chapter(),
+            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_ending_chapter(),
+            PassageSegment::ChapterRange(book_range) => book_range.get_ending_chapter(),
+            PassageSegment::FullChapter(full_chapter) => full_chapter.get_ending_chapter(),
+            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_ending_chapter(),
+        }
+    }
+
+    pub fn get_ending_verse(&self) -> Option<u8> {
+        match self {
+            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_ending_verse(),
+            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_ending_verse(),
+            PassageSegment::ChapterRange(book_range) => book_range.get_ending_verse(),
+            PassageSegment::FullChapter(full_chapter) => full_chapter.get_ending_verse(),
+            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_ending_verse(),
         }
     }
 }

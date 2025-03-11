@@ -186,18 +186,18 @@ mod map_tests {
     fn test1() -> Result<(), String> {
         let mut map: OverlapMap<ChapterVerseRange, ()> = OverlapMap::new();
 
-        map.insert(ChapterVerseRange::parse("1:1-2")?, ());
-        map.insert(ChapterVerseRange::parse("1:4-5")?, ());
-        map.insert(ChapterVerseRange::parse("1:6-7")?, ());
-        map.insert(ChapterVerseRange::parse("2:1-2")?, ());
+        map.insert(ChapterVerseRange::parse_strict("1:1-2")?, ());
+        map.insert(ChapterVerseRange::parse_strict("1:4-5")?, ());
+        map.insert(ChapterVerseRange::parse_strict("1:6-7")?, ());
+        map.insert(ChapterVerseRange::parse_strict("2:1-2")?, ());
 
-        let key = ChapterVerseRange::parse("2:1-2")?;
+        let key = ChapterVerseRange::parse_strict("2:1-2")?;
         dbg!(map.get_overlapping(&key));
 
-        let key = ChapterVerseRange::parse("1:2-3")?;
+        let key = ChapterVerseRange::parse_strict("1:2-3")?;
         dbg!(map.get_overlapping(&key));
 
-        let key = ChapterVerseRange::parse("1:2-4")?;
+        let key = ChapterVerseRange::parse_strict("1:2-4")?;
         dbg!(map.get_overlapping(&key));
 
         Ok(())

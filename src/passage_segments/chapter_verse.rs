@@ -1,6 +1,6 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{fmt::{Debug, Display}, str::FromStr};
-use crate::{parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
+use crate::{compare::SegmentCompare, parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
 
 /// - This is a single chapter/verse reference
 /// - Ex: `1:2` in `John 1:2`
@@ -65,6 +65,24 @@ impl FromStr for ChapterVerse {
     }
 }
 
+impl SegmentCompare for ChapterVerse {
+    fn get_starting_chapter(&self) -> u8 {
+        self.chapter
+    }
+
+    fn get_starting_verse(&self) -> u8 {
+        self.verse
+    }
+
+    fn get_ending_chapter(&self) -> u8 {
+        self.chapter
+    }
+
+    fn get_ending_verse(&self) -> Option<u8> {
+        Some(self.verse)
+    }
+}
+
 impl PartialOrd for ChapterVerse {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.chapter.cmp(&other.chapter)
@@ -111,4 +129,8 @@ impl ParsableSegment for ChapterVerse {
 
         Ok(ChapterVerse::new(chapter, verse))
     }
+}
+
+#[cfg(test)]
+mod chapter_verse_tests {
 }

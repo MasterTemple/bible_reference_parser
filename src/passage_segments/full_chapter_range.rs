@@ -1,6 +1,6 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{fmt::{Debug, Display}, ops::{Deref, DerefMut}, str::FromStr};
-use crate::{parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
+use crate::{compare::SegmentCompare, parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
 use super::{full_chapter::FullChapter, range_pair::RangePair};
 
 /// - This is a chapter range reference
@@ -60,6 +60,24 @@ impl FromStr for FullChapterRange {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::parse(s)
+    }
+}
+
+impl SegmentCompare for FullChapterRange {
+    fn get_starting_chapter(&self) -> u8 {
+        self.start.chapter
+    }
+
+    fn get_starting_verse(&self) -> u8 {
+        1
+    }
+
+    fn get_ending_chapter(&self) -> u8 {
+        self.end.chapter
+    }
+
+    fn get_ending_verse(&self) -> Option<u8> {
+        None
     }
 }
 

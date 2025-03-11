@@ -1,16 +1,17 @@
-pub mod passage_segments;
+pub mod compare;
 pub mod maps;
-pub mod passage;
-pub mod segments;
-pub mod segment;
 pub mod overlap;
 pub mod parse;
+pub mod passage;
+pub mod passage_segments;
+pub mod segment;
+pub mod segments;
 
-#[cfg(test)]
-mod test {
-
-    #[test]
-    fn main() {
-        // run code here
-    }
-}
+// #[cfg(test)]
+// mod test {
+//
+//     #[test]
+//     fn main() {
+//         // run code here
+//     }
+// }

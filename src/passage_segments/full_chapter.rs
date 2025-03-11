@@ -1,6 +1,6 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 use std::{fmt::{Debug, Display}, str::FromStr};
-use crate::{parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
+use crate::{compare::SegmentCompare, parse::{ParsableSegment, SegmentParseMethods}, segment::PassageSegment};
 
 /// - This is a single chapter reference
 /// - Ex: `1` in `John 1`
@@ -60,6 +60,24 @@ impl FromStr for FullChapter {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::parse(s)
+    }
+}
+
+impl SegmentCompare for FullChapter {
+    fn get_starting_chapter(&self) -> u8 {
+        self.chapter
+    }
+
+    fn get_starting_verse(&self) -> u8 {
+        1
+    }
+
+    fn get_ending_chapter(&self) -> u8 {
+        self.chapter
+    }
+
+    fn get_ending_verse(&self) -> Option<u8> {
+        None
     }
 }
 

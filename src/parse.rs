@@ -58,8 +58,6 @@ pub(crate) trait SegmentParseMethods: ParsableSegment {
 }
 impl<T: ParsableSegment> SegmentParseMethods for T { }
 
-// TryFrom<PassageSegment>
-// pub trait ParsableSegment: FromStr<Err = String> {
 pub trait ParsableSegment: Sized + TryFrom<PassageSegment, Error = String> {
     const EXPECTED_FORMAT: &'static str;
 
@@ -81,37 +79,6 @@ pub trait ParsableSegment: Sized + TryFrom<PassageSegment, Error = String> {
         })
     }
 }
-
-// impl<T: ParsableSegment> FromStr for T {
-//     type Err = String;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         T::parse(s)
-//     }
-// }
-
-// #[macro_export]
-// macro_rules! impl_parsable_segment {
-//     ($name:ident, $fmt: literal) => {
-//         impl crate::parse::ParsableSegment for $name {
-//             const EXPECTED_FORMAT: &'static str = $fmt;
-//         }
-//
-//         impl std::str::FromStr for $name {
-//             type Err = String;
-//
-//             fn from_str(s: &str) -> Result<Self, Self::Err> {
-//                 use crate::parse::ParsableSegment;
-//                 let segments = crate::segments::PassageSegments::parse(s).map_err(|_| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
-//                 if segments.is_empty() { Err(String::from("No segments found"))? }
-//                 Ok(match segments[0] {
-//                     crate::segment::PassageSegment::$name(this) => this,
-//                     _ => Err(format!("Parsed incorrect format. Expected format '{}'", Self::EXPECTED_FORMAT))?,
-//                 })
-//             }
-//         }
-//     };
-// }
 
 impl PassageSegment {
     pub fn parse(input: &str) -> Result<Self, String> {
