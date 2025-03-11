@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, ops::{Deref, DerefMut}};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::{overlap::OverlapsWith, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment};
+use crate::{compare::SegmentCompare, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment};
 
 pub type ChapterRangeMap<V> = OverlapMap<ChapterRange, V>;
 pub type ChapterVerseRangeMap<V> = OverlapMap<ChapterVerseRange, V>;
@@ -93,8 +93,8 @@ impl<V> BookPassageMap<V> {
     }
 }
 
-pub trait OverlapKey: Ord + OverlapsWith + Into<PassageSegment> + Copy {}
-impl<K: Ord + OverlapsWith + Into<PassageSegment> + Copy> OverlapKey for K {}
+pub trait OverlapKey: Ord + SegmentCompare + Into<PassageSegment> + Copy {}
+impl<K: Ord + SegmentCompare + Into<PassageSegment> + Copy> OverlapKey for K {}
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct OverlapMap<K: OverlapKey, V>(BTreeMap<K, V>);
@@ -124,7 +124,7 @@ impl<K: OverlapKey, V> OverlapMap<K, V> {
         // so I convert the key only once
         let seg: PassageSegment = (*key).into();
         self.iter().filter(|(key, _)| {
-            seg.overlaps_segment(**key)
+            seg.overlaps_with(*key)
         }).collect_vec()
     }
 
@@ -151,7 +151,7 @@ impl<K: OverlapKey, V> OverlapMap<K, V> {
         // search left
         let mut range = self.range(..key);
         while let Some((prev_k, prev_v)) = range.next_back() {
-            if seg.overlaps_segment(*prev_k) {
+            if seg.overlaps_with(prev_k) {
                 result.push((prev_k, prev_v));
             } else {
                 break;
@@ -164,7 +164,7 @@ impl<K: OverlapKey, V> OverlapMap<K, V> {
         // search right (inclusive)
         let mut range = self.range(key..);
         while let Some((next_k, next_v)) = range.next() {
-            if seg.overlaps_segment(*next_k) {
+            if seg.overlaps_with(next_k) {
                 result.push((next_k, next_v));
             } else {
                 break;

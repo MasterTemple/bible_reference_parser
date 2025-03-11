@@ -2,7 +2,7 @@ use std::{fmt::Debug, ops::{Deref, DerefMut}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{overlap::OverlapsWith, segment::PassageSegment};
+use crate::{compare::SegmentCompare, segment::PassageSegment};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PassageSegments(pub Vec<PassageSegment>);
@@ -28,7 +28,7 @@ impl PassageSegments {
 
     pub fn overlaps_segment(&self, other: impl Into<PassageSegment>) -> bool {
         let other = other.into();
-        self.iter().any(|this| this.overlaps_segment(other))
+        self.iter().any(|this| this.overlaps_with(&other))
     }
 
     /// - This can be better optimized, but that is not a priority right now
