@@ -5,20 +5,24 @@ use crate::{compare::SegmentCompare, passage_segments::{chapter_range::ChapterRa
 
 /// Remember, these correspond to
 /// ```text
-///                `Ephesians 1:1-4,5-7,2:2-3:4,6`
-///                          |     |   |       | |
-///                ----------+     |   |       | |
-/// ChapterRange:  `1:1-4`         |   |       | |
-///                ----------------+   |       | |
-/// ChapterRange:  `1:5-7`             |       | |
-///                --------------------+       | |
-/// BookRange:     `2:2-3:4`                   | |
-///                ----------------------------+ |
-/// ChapterVerse:  `3:6`                         |
-///                ------------------------------+
+///                   `John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8`
+///                        | |   |     | |   |      |       |
+/// -----------------------+ |   |     | |   |      |       |
+/// Full Chapter:        `1` |   |     | |   |      |       |
+/// -------------------------+   |     | |   |      |       |
+/// Full Chapter Range:  `2-4`   |     | |   |      |       |
+/// -----------------------------+     | |   |      |       |
+/// Chapter Range:       `5:1-3`       | |   |      |       |
+/// -----------------------------------+ |   |      |       |
+/// Chapter Verse:       `5:5            |   |      |       |
+/// -------------------------------------+   |      |       |
+/// Chapter Verse Range: `5:7-9`             |      |       |
+/// -----------------------------------------+      |       |
+/// Chapter Range:       `5:12-6:6`                 |       |
+/// ------------------------------------------------+       |
+/// Chapter Range:       `7:7-8:8`                          |
+/// --------------------------------------------------------+
 /// ```
-/// These should be grouped into a single reference
-///
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum PassageSegment {
