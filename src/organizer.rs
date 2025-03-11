@@ -9,6 +9,15 @@ use crate::passage_segments::full_chapter::FullChapter;
 use crate::passage_segments::full_chapter_range::{self, FullChapterRange};
 use crate::segment::PassageSegment;
 
+#[derive(Debug, Default)]
+pub struct GroupedContent<'a, Container: Debug + Default> {
+    chapter_verse: Vec<(ChapterVerse, &'a Container)>,
+    chapter_verse_range: Vec<(ChapterVerseRange, &'a Container)>,
+    chapter_range: Vec<(ChapterRange, &'a Container)>,
+    full_chapter: Vec<(FullChapter, &'a Container)>,
+    full_chapter_range: Vec<(FullChapterRange, &'a Container)>,
+}
+
 /// It requires default not because the data type must impl Default, but it's container should
 #[derive(Debug, Default)]
 pub struct BookOrganizer<Container: Debug + Default> {
@@ -77,6 +86,16 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
             .chain(self.get_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
             .chain(self.get_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)))
             .chain(self.get_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
+    }
+
+    pub fn get_all_content_grouped<'a>(&'a self, key: &'a impl SegmentCompare) -> GroupedContent<'a, Container> {
+        GroupedContent {
+            chapter_verse: self.get_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            chapter_verse_range: self.get_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            chapter_range: self.get_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            full_chapter: self.get_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            full_chapter_range: self.get_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+        }
     }
 }
 
