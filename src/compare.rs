@@ -1,3 +1,5 @@
+use std::ops::Bound;
+
 pub trait SegmentCompare: Sized {
     fn starting_verse(&self) -> u8;
 
@@ -6,6 +8,29 @@ pub trait SegmentCompare: Sized {
     fn ending_verse(&self) -> Option<u8>;
 
     fn ending_chapter(&self) -> u8;
+
+    /// - The verse range starts at 1 when not the starting chapter
+    /// - The verse range is unbounded when not the ending chapter
+    fn verse_range(&self, chapter: u8) -> (Bound<u8>, Bound<u8>) {
+        let start_bound = if chapter == self.starting_chapter() {
+            Bound::Included(self.starting_verse())
+        } else {
+            Bound::Included(1)
+        };
+        let end_bound = if chapter == self.ending_chapter() {
+            match self.ending_verse() {
+                Some(ending_verse) => Bound::Included(ending_verse),
+                None => Bound::Unbounded
+            }
+        } else {
+            Bound::Unbounded
+        };
+        (start_bound, end_bound)
+    }
+
+    fn chapter_range(&self) -> std::ops::RangeInclusive<u8> {
+        self.starting_chapter()..=self.ending_chapter()
+    }
 
     fn ends_before(&self, other: &impl SegmentCompare) -> bool {
         // it finishes in a chapter before the other one
