@@ -125,9 +125,9 @@ first.contains_overlap(&third); // false
 second.contains_overlap(&third); // false
 ```
 
-### Map Overlap
+### Passage Organizer
 
-I have provided several aliases for the `OverlapMap` which allows retreival of all overlapping media
+The `PassageOrganizer` is an efficient data structure that stores any data in a container, **accessible via any passage overlap**
 
 > [!IMPORTANT]
 > This has a massive use case for storing content related to a Bible verse,
@@ -145,12 +145,16 @@ let mut data = PassageOrganizer::<MyContainer>::new();
 data.modify(psg("1:2")).push(MyData::Note("Here is a note on 1:2".into()));
 data.modify(psg("1")).push(MyData::Note("Some thoughts on chapter 1".into()));
 data.modify(psg("1:2-3")).push(MyData::Tag("#some-tag".into()));
+```
+
+#### Get Content with a Specific Proximity
 
 ```rust
 // get content of a specific proximity
 println!("{:#?}", data.get_chapter_verse_content(&psg("1:2")));
 ```
-```
+Prints
+```ron
 [
     (
         ChapterVerse {
@@ -166,12 +170,14 @@ println!("{:#?}", data.get_chapter_verse_content(&psg("1:2")));
 ]
 ```
 
+#### Get All Content (Ordered by Proximity)
+
 ```rust
 // get all content
 println!("{:#?}", data.get_all_content(&psg("1:1-3")).collect_vec());
 ```
-
-```
+Prints
+```ron
 [
     (
         ChapterVerse(
@@ -230,12 +236,14 @@ println!("{:#?}", data.get_all_content(&psg("1:1-3")).collect_vec());
 ]
 ```
 
+#### Get All Content (Grouped by Proximity)
+
 ```rust
 // get all content grouped by proximity
 println!("{:#?}", data.get_all_content_grouped(&psg("1:1-3")));
 ```
-
-```
+Prints
+```ron
 GroupedContent {
     chapter_verse: [
         (
