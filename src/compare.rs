@@ -1,5 +1,7 @@
 use std::ops::Bound;
 
+use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment};
+
 pub trait SegmentCompare: Sized {
     fn starting_verse(&self) -> u8;
 
@@ -49,6 +51,39 @@ pub trait SegmentCompare: Sized {
     fn overlaps_with(&self, other: &impl SegmentCompare) -> bool {
         !(self.ends_before(other) || self.starts_after(other))
     }
+
+    /// determines what kind of passage segment this really is
+    fn refine(&self) -> PassageSegment {
+        let starting_chapter = self.starting_chapter();
+        let starting_verse = self.starting_chapter();
+        let ending_chapter = self.ending_chapter();
+        let same_chapter = starting_chapter == ending_chapter;
+
+        if let Some(ending_verse) = self.ending_verse() {
+            // it must be either a chapter verse or a chapter verse range
+            if same_chapter {
+                if starting_verse == ending_verse {
+                    PassageSegment::ChapterVerse(ChapterVerse::new(starting_chapter, starting_verse))
+                }
+                else {
+                PassageSegment::ChapterVerseRange(ChapterVerseRange::new(starting_chapter, starting_verse, ending_verse))
+                }
+
+            }
+            // it must be a chapter range
+            else {
+                PassageSegment::ChapterRange(ChapterRange::new(starting_chapter, starting_verse, ending_chapter, ending_verse))
+            }
+        }
+        // it must be a full chapter or a full chapter range
+        else {
+            if same_chapter {
+                PassageSegment::FullChapter(FullChapter::new(starting_chapter))
+            } else {
+                PassageSegment::FullChapterRange(FullChapterRange::new(starting_chapter, ending_chapter))
+            }
+        }
+    }
 }
 
 // impl<T: SegmentCompare> PartialOrd for T {
@@ -64,7 +99,7 @@ pub trait SegmentCompare: Sized {
 
 #[cfg(test)]
 mod tests {
-    use crate::{segment::PassageSegment};
+    use crate::segment::PassageSegment;
 
     use super::*;
 
