@@ -1,8 +1,9 @@
 use std::ops::Bound;
+use std::fmt::Debug;
 
 use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment};
 
-pub trait SegmentCompare: Sized {
+pub trait SegmentCompare: Sized + Debug {
     fn starting_verse(&self) -> u8;
 
     fn starting_chapter(&self) -> u8;
@@ -53,9 +54,9 @@ pub trait SegmentCompare: Sized {
     }
 
     /// determines what kind of passage segment this really is
-    fn refine(&self) -> PassageSegment {
+    fn actual(&self) -> PassageSegment {
         let starting_chapter = self.starting_chapter();
-        let starting_verse = self.starting_chapter();
+        let starting_verse = self.starting_verse();
         let ending_chapter = self.ending_chapter();
         let same_chapter = starting_chapter == ending_chapter;
 
@@ -66,7 +67,7 @@ pub trait SegmentCompare: Sized {
                     PassageSegment::ChapterVerse(ChapterVerse::new(starting_chapter, starting_verse))
                 }
                 else {
-                PassageSegment::ChapterVerseRange(ChapterVerseRange::new(starting_chapter, starting_verse, ending_verse))
+                    PassageSegment::ChapterVerseRange(ChapterVerseRange::new(starting_chapter, starting_verse, ending_verse))
                 }
 
             }

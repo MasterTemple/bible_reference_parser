@@ -9,6 +9,39 @@ use crate::passage_segments::full_chapter::FullChapter;
 use crate::passage_segments::full_chapter_range::FullChapterRange;
 use crate::segment::PassageSegment;
 
+fn get_ranges_from_map<'a, Key: Ord + SegmentCompare, Content>(map: &'a BTreeMap<Key, Content>, key: &'a Key) -> Vec<(&'a Key, &'a Content)> {
+    let mut result = Vec::new();
+
+    // let key = &FullChapterRange::new(1, 2);
+    
+    // search left
+    let mut iter = map.range(..key).rev();
+    while let Some((prev_k, prev_v)) = iter.next_back() {
+        if key.overlaps_with(prev_k) {
+            result.push((prev_k, prev_v));
+        } else {
+            if key.ends_before(prev_k) {
+                break;
+            }
+        }
+    }
+
+    // since first elements are inserted backward
+    result = result.into_iter().rev().collect();
+
+    // search right (inclusive)
+    let mut range = map.range(key..);
+    while let Some((next_k, next_v)) = range.next() {
+        if key.overlaps_with(next_k) {
+            result.push((next_k, next_v));
+        } else {
+            break;
+        }
+    }
+
+    result
+}
+
 /// It requires default not because the data type must impl Default, but it's container should
 #[derive(Debug, Default)]
 pub struct BookOrganizer<Container: Debug + Default> {
@@ -45,9 +78,10 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
         }
     }
 
+    /// returns the requested object to modify (creating necessary defaults)
     pub fn modify(&mut self, seg: impl SegmentCompare) -> &mut Container {
         // convert into best passage segment
-        let seg = seg.refine();
+        let seg = seg.actual();
         match seg {
             PassageSegment::ChapterVerse(seg) => {
                 self.chapter_verse.entry(seg.chapter).or_default()
@@ -117,10 +151,15 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
 
 
     pub fn get_full_chapter_range_content<'a>(&'a self, seg: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
-        self.full_chapter_range.range(seg.chapter_range()).flat_map(|(&start_chapter, map)| {
+        self.full_chapter_range.range(seg.chapter_range()).flat_map(move|(&start_chapter, map)| {
+            dbg!(&seg, start_chapter, &map);
             // I should make `seg.chapter_range()` be `start_chapter..=seg.`
-            map.range(start_chapter..=seg.ending_chapter()).map(move |(end_chapter, container)| {
-                (FullChapterRange::new(start_chapter, *end_chapter), container)
+            // map.range(start_chapter..=seg.ending_chapter()).map(move |(&end_chapter, container)| {
+            // map.range(seg.chapter_range()).map(move |(&end_chapter, container)| {
+            // I just do `iter` because the start chapter has already matched and I want to include
+            // everything that it terminates at, because it all encloses this
+            map.iter().map(move |(&end_chapter, container)| {
+                (FullChapterRange::new(start_chapter, end_chapter), container)
             })
         })
     }
@@ -130,22 +169,18 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange};
+    use crate::{compare::SegmentCompare, organizer::get_ranges_from_map, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}};
 
     use super::BookOrganizer;
 
     #[test]
     fn chapter_verse() {
         let mut org = BookOrganizer::<()>::new();
-        org.chapter_verse.insert(1, BTreeMap::from([
-            (1, ()), (2, ()), (3, ())
-        ]));
-        org.chapter_verse.insert(2, BTreeMap::from([
-            (1, ()), (2, ()), (3, ())
-        ]));
-        org.chapter_verse.insert(3, BTreeMap::from([
-            (1, ()), (2, ()), (3, ())
-        ]));
+        for ch in 1..=3 {
+            for v in 1..=3 {
+                org.modify(ChapterVerse::new(ch, v));
+            }
+        }
 
         assert_eq!(org.get_chapter_verse_content(&ChapterVerse::new(1, 1)).count(), 1);
         assert_eq!(org.get_chapter_verse_content(&ChapterVerse::new(4, 1)).count(), 0);
@@ -195,9 +230,9 @@ mod tests {
     #[test]
     fn full_chapter() {
         let mut org = BookOrganizer::<()>::new();
-        org.full_chapter.insert(1, ());
-        org.full_chapter.insert(2, ());
-        org.full_chapter.insert(3, ());
+        for ch in 1..=3 {
+            org.modify(FullChapter::new(ch));
+        }
 
         assert_eq!(org.get_full_chapter_content(&ChapterVerse::new(1, 1)).count(), 1);
         assert_eq!(org.get_full_chapter_content(&ChapterVerse::new(4, 1)).count(), 0);
@@ -213,5 +248,44 @@ mod tests {
 
         assert_eq!(org.get_full_chapter_content(&FullChapterRange::new(1, 2)).count(), 2);
         assert_eq!(org.get_full_chapter_content(&FullChapterRange::new(4, 5)).count(), 0);
+    }
+
+    #[test]
+    fn full_chapter_range() {
+        let mut org = BookOrganizer::<()>::new();
+        // 1-3, 2-4, 3-5
+        for start in 1..=3 {
+            org.modify(FullChapterRange::new(start, start + 2));
+        }
+        dbg!(&org);
+
+        assert_eq!(org.get_full_chapter_range_content(&ChapterVerse::new(1, 1)).count(), 1);
+        assert_eq!(org.get_full_chapter_range_content(&ChapterVerse::new(6, 1)).count(), 0);
+
+        assert_eq!(org.get_full_chapter_range_content(&ChapterVerseRange::new(1, 1, 2)).count(), 1);
+        assert_eq!(org.get_full_chapter_range_content(&ChapterVerseRange::new(6, 1, 2)).count(), 0);
+
+        assert_eq!(org.get_full_chapter_range_content(&ChapterRange::new(1, 1, 2, 1)).count(), 2);
+        assert_eq!(org.get_full_chapter_range_content(&ChapterRange::new(6, 1, 7, 1)).count(), 0);
+
+        assert_eq!(org.get_full_chapter_range_content(&FullChapter::new(2)).count(), 2);
+        assert_eq!(org.get_full_chapter_range_content(&FullChapter::new(6)).count(), 0);
+
+        // assert_eq!(org.get_full_chapter_range_content(&FullChapterRange::new(1, 2)).count(), 2);
+        // assert_eq!(org.get_full_chapter_range_content(&FullChapterRange::new(6, 7)).count(), 0);
+    }
+
+    #[test]
+    fn idk() {
+        let map: BTreeMap<FullChapterRange, ()> = BTreeMap::from([
+            (FullChapterRange::new(1, 3), ()),
+            (FullChapterRange::new(2, 4), ()),
+            (FullChapterRange::new(3, 5), ()),
+        ]);
+
+        let key = &FullChapterRange::new(1, 2);
+        let result = get_ranges_from_map(&map, key);
+
+        dbg!(result);
     }
 }
