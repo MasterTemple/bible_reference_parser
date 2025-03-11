@@ -33,7 +33,7 @@ impl DerefMut for ChapterRange {
 }
 
 impl ChapterRange {
-    pub fn new(start_chapter: usize, start_verse: usize, end_chapter: usize, end_verse: usize) -> Self {
+    pub fn new(start_chapter: u8, start_verse: u8, end_chapter: u8, end_verse: u8) -> Self {
         ChapterRange(RangePair{
             start: ChapterVerse::new(
                 start_chapter,

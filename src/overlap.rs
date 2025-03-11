@@ -1,10 +1,10 @@
 use crate::segment::PassageSegment;
 
 pub struct ExplicitChapterVerseRange {
-    start_chapter: usize,
-    start_verse: usize,
-    end_chapter: usize,
-    end_verse: Option<usize>,
+    start_chapter: u8,
+    start_verse: u8,
+    end_chapter: u8,
+    end_verse: Option<u8>,
 }
 
 impl PassageSegment {

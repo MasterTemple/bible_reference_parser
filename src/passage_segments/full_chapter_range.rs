@@ -31,7 +31,7 @@ impl DerefMut for FullChapterRange {
 }
 
 impl FullChapterRange {
-    pub fn new(start: usize, end: usize) -> Self {
+    pub fn new(start: u8, end: u8) -> Self {
         FullChapterRange(RangePair{
             start: FullChapter::new(
                 start,

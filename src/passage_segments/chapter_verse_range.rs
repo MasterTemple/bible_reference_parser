@@ -7,8 +7,8 @@ use super::range_pair::RangePair;
 /// - Ex: `1:2-3` `John 1:2-3`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct ChapterVerseRange {
-    pub chapter: usize,
-    pub verses: RangePair<usize>,
+    pub chapter: u8,
+    pub verses: RangePair<u8>,
 }
 
 impl PartialOrd for ChapterVerseRange {
@@ -22,7 +22,7 @@ impl PartialOrd for ChapterVerseRange {
 }
 
 impl ChapterVerseRange {
-    pub fn new(chapter: usize, start_verse: usize, end_verse: usize) -> Self {
+    pub fn new(chapter: u8, start_verse: u8, end_verse: u8) -> Self {
         ChapterVerseRange {
             chapter,
             verses: RangePair {

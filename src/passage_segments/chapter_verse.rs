@@ -6,8 +6,8 @@ use crate::{impl_parsable_segment, segment::PassageSegment};
 /// - Ex: `1:2` in `John 1:2`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, Serialize, Deserialize)]
 pub struct ChapterVerse {
-    pub chapter: usize,
-    pub verse: usize,
+    pub chapter: u8,
+    pub verse: u8,
 }
 
 impl PartialOrd for ChapterVerse {
@@ -18,7 +18,7 @@ impl PartialOrd for ChapterVerse {
 }
 
 impl ChapterVerse {
-    pub fn new(chapter: usize, verse: usize) -> Self {
+    pub fn new(chapter: u8, verse: u8) -> Self {
         ChapterVerse { chapter, verse }
     }
 }

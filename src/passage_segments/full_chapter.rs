@@ -6,11 +6,11 @@ use crate::{impl_parsable_segment, segment::PassageSegment};
 /// - Ex: `1` in `John 1`
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct FullChapter {
-    pub chapter: usize,
+    pub chapter: u8,
 }
 
 impl FullChapter {
-    pub fn new(chapter: usize) -> Self {
+    pub fn new(chapter: u8) -> Self {
         FullChapter { chapter }
     }
 }

@@ -8,22 +8,22 @@
 // };
 //
 // pub trait PassageDataProvider {
-//     fn get_book_name(&self, book: usize) -> String;
-//     fn get_content(&self, book: usize, chapter: usize, verse: usize) -> String;
-//     fn get_ending_chapter(&self, book: usize) -> usize;
-//     fn get_ending_verse(&self, book: usize, chapter: usize) -> usize;
+//     fn get_book_name(&self, book: u8) -> String;
+//     fn get_content(&self, book: u8, chapter: u8, verse: u8) -> String;
+//     fn get_ending_chapter(&self, book: u8) -> u8;
+//     fn get_ending_verse(&self, book: u8, chapter: u8) -> u8;
 // }
 //
 // #[derive(Clone, Debug)]
 // pub struct Passage {
 //     // pub range: Range,
-//     pub book_id: usize,
+//     pub book_id: u8,
 //     pub segments: PassageSegments,
 // }
 //
 // impl Passage {
 //     /// This should only be called after finding a match in a range
-//     // pub fn new(book_id: usize, range: Range, segment_input: &str) -> Self {
+//     // pub fn new(book_id: u8, range: Range, segment_input: &str) -> Self {
 //     //     // split into book name and segments
 //     //     // get book id
 //     //     let segments = PassageSegments::parse(segment_input);
@@ -34,14 +34,14 @@
 //     //     }
 //     // }
 //
-//     pub fn new(book_id: usize, segment_input: &str) -> Self {
+//     pub fn new(book_id: u8, segment_input: &str) -> Self {
 //         // split into book name and segments
 //         // get book id
 //         let segments = PassageSegments::parse(segment_input);
 //         Self { book_id, segments }
 //     }
 //
-//     // pub fn new_book(book_id: usize, api: &BibleAPI) -> Self {
+//     // pub fn new_book(book_id: u8, api: &BibleAPI) -> Self {
 //     //     let end_chapter = api.data().get_book_chapter_count(book_id).unwrap_or(1);
 //     //     let end_verse = api
 //     //         .data()
@@ -163,7 +163,7 @@
 //     //     &self,
 //     //     formatter: PassageFormatter,
 //     //     book: &str,
-//     //     get_content: impl Fn(usize, usize) -> String,
+//     //     get_content: impl Fn(u8, u8) -> String,
 //     // ) -> String {
 //     //     // let book = "Ephesians";
 //     //     // let segment_template = Template::from_template("{verses}").unwrap();

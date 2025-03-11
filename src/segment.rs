@@ -52,7 +52,7 @@ impl PartialOrd for PassageSegment {
 
 // Helpful methods for accessing data
 impl PassageSegment {
-    pub fn get_starting_verse(&self) -> usize {
+    pub fn get_starting_verse(&self) -> u8 {
         match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.verse,
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.verses.start,
@@ -61,7 +61,7 @@ impl PassageSegment {
         }
     }
 
-    pub fn get_starting_chapter(&self) -> usize {
+    pub fn get_starting_chapter(&self) -> u8 {
         match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.chapter,
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.chapter,
@@ -71,7 +71,7 @@ impl PassageSegment {
         }
     }
 
-    pub fn get_ending_verse(&self) -> Option<usize> {
+    pub fn get_ending_verse(&self) -> Option<u8> {
         Some(match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.verse,
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.verses.end,
@@ -80,7 +80,7 @@ impl PassageSegment {
         })
     }
 
-    pub fn get_ending_chapter(&self) -> usize {
+    pub fn get_ending_chapter(&self) -> u8 {
         match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.chapter,
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.chapter,
@@ -93,23 +93,23 @@ impl PassageSegment {
 
 // Easy constructors
 impl PassageSegment {
-    pub fn chapter_verse(chapter: usize, verse: usize) -> Self {
+    pub fn chapter_verse(chapter: u8, verse: u8) -> Self {
         Self::ChapterVerse(ChapterVerse::new(chapter, verse))
     }
 
-    pub fn chapter_verse_range(chapter: usize, start_verse: usize, end_verse: usize) -> Self {
+    pub fn chapter_verse_range(chapter: u8, start_verse: u8, end_verse: u8) -> Self {
         Self::ChapterVerseRange(ChapterVerseRange::new(chapter, start_verse, end_verse))
     }
 
-    pub fn chapter_range(start_chapter: usize, start_verse: usize, end_chapter: usize, end_verse: usize) -> Self {
+    pub fn chapter_range(start_chapter: u8, start_verse: u8, end_chapter: u8, end_verse: u8) -> Self {
         Self::ChapterRange(ChapterRange::new(start_chapter, start_verse, end_chapter, end_verse))
     }
 
-    pub fn full_chapter(chapter: usize) -> Self {
+    pub fn full_chapter(chapter: u8) -> Self {
         Self::FullChapter(FullChapter::new(chapter))
     }
 
-    pub fn full_chapter_range(start: usize, end: usize) -> Self {
+    pub fn full_chapter_range(start: u8, end: u8) -> Self {
         Self::FullChapterRange(FullChapterRange::new(start, end))
     }
 }
