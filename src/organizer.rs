@@ -1,18 +1,18 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
+use itertools::Itertools;
+
 use crate::compare::SegmentCompare;
 use crate::passage_segments::chapter_range::ChapterRange;
 use crate::passage_segments::chapter_verse::ChapterVerse;
 use crate::passage_segments::chapter_verse_range::ChapterVerseRange;
 use crate::passage_segments::full_chapter::FullChapter;
-use crate::passage_segments::full_chapter_range::FullChapterRange;
+use crate::passage_segments::full_chapter_range::{self, FullChapterRange};
 use crate::segment::PassageSegment;
 
 fn get_ranges_from_map<'a, Key: Ord + SegmentCompare, Content>(map: &'a BTreeMap<Key, Content>, key: &'a Key) -> Vec<(&'a Key, &'a Content)> {
     let mut result = Vec::new();
-
-    // let key = &FullChapterRange::new(1, 2);
     
     // search left
     let mut iter = map.range(..key).rev();
@@ -38,6 +38,22 @@ fn get_ranges_from_map<'a, Key: Ord + SegmentCompare, Content>(map: &'a BTreeMap
             break;
         }
     }
+
+    result
+}
+
+fn get_ranges_from_map2<'a, Key: Ord + SegmentCompare, Content>(map: &'a BTreeMap<Key, Content>, seg: &'a Key) -> Vec<(&'a Key, &'a Content)> {
+    // iterate backwards, taking elements as long as the segment starts after the key ends
+    let before = map.range(..seg).rev().take_while(|(key, _)| seg.starts_after(*key))
+        .filter(|(key, _)| seg.overlaps_with(*key)).collect_vec();
+
+    // since first elements are inserted backward
+    let mut result = before.into_iter().rev().collect_vec();
+
+    let after = map.range(seg..).take_while(|(key, _)| seg.overlaps_with(*key));
+    
+    // extend with
+    result.extend(after);
 
     result
 }
@@ -150,17 +166,17 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
     }
 
 
-    pub fn get_full_chapter_range_content<'a>(&'a self, seg: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
-        self.full_chapter_range.range(seg.chapter_range()).flat_map(move|(&start_chapter, map)| {
-            dbg!(&seg, start_chapter, &map);
-            // I should make `seg.chapter_range()` be `start_chapter..=seg.`
-            // map.range(start_chapter..=seg.ending_chapter()).map(move |(&end_chapter, container)| {
-            // map.range(seg.chapter_range()).map(move |(&end_chapter, container)| {
+    pub fn get_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
+        // self.full_chapter_range.range(seg.chapter_range()).flat_map(move|(&start_chapter, map)| {
+        self.full_chapter_range.range(1..=key.ending_chapter()).flat_map(move|(&start_chapter, map)| {
             // I just do `iter` because the start chapter has already matched and I want to include
             // everything that it terminates at, because it all encloses this
-            map.iter().map(move |(&end_chapter, container)| {
-                (FullChapterRange::new(start_chapter, end_chapter), container)
+            map.iter().filter_map(move |(&end_chapter, container)| {
+                let full_chapter_range = FullChapterRange::new(start_chapter, end_chapter);
+                full_chapter_range.overlaps_with(key).then(|| (full_chapter_range, container))
             })
+            // early terminate when the key ends before the start of this segment
+            .take_while(|(seg, _)| !key.ends_before(seg))
         })
     }
 }
@@ -169,7 +185,7 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
 mod tests {
     use std::collections::BTreeMap;
 
-    use crate::{compare::SegmentCompare, organizer::get_ranges_from_map, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}};
+    use crate::{compare::SegmentCompare, organizer::{get_ranges_from_map, get_ranges_from_map2}, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}};
 
     use super::BookOrganizer;
 
@@ -284,7 +300,9 @@ mod tests {
         ]);
 
         let key = &FullChapterRange::new(1, 2);
-        let result = get_ranges_from_map(&map, key);
+        // let key = &FullChapter::new(1);
+        // let result = get_ranges_from_map(&map, key);
+        let result = get_ranges_from_map2(&map, key);
 
         dbg!(result);
     }

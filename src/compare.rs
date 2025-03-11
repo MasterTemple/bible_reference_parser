@@ -49,6 +49,12 @@ pub trait SegmentCompare: Sized + Debug {
         other.ends_before(self)
     }
 
+    // If:
+    // - This segment ends before the other segment starts
+    // OR
+    // - This segment starts after the other segment ends
+    // Then:
+    // - This segment does NOT overlap with the other segment
     fn overlaps_with(&self, other: &impl SegmentCompare) -> bool {
         !(self.ends_before(other) || self.starts_after(other))
     }
