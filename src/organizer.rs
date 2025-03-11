@@ -1,8 +1,5 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-use std::ops::Bound;
-
-use itertools::Itertools;
 
 use crate::compare::SegmentCompare;
 use crate::passage_segments::chapter_range::ChapterRange;
@@ -57,6 +54,9 @@ impl<Content: Debug> BookOrganizer<Content> {
         self.chapter_verse_range.range(seg.chapter_range()).flat_map(|(&chapter, verse_range_map)| {
             let verse_range = seg.verse_range(chapter);
             verse_range_map.range(verse_range).flat_map(move|(&start_verse, map)| {
+                // Are you sure `verse_range` should not be `start_verse..=seg.ending_verse()`?
+                // But start verse will always be 1 except for the first time, which is covered by
+                // the `verse_range` method
                 map.range(verse_range).map(move|(&end_verse, content)| {
                     (ChapterVerseRange::new(chapter, start_verse, end_verse), content)
                 })
@@ -64,11 +64,16 @@ impl<Content: Debug> BookOrganizer<Content> {
         })
     }
 
-    pub fn get_chapter_range_content<'a>(&'a self, seg: &impl SegmentCompare) -> impl Iterator<Item = (ChapterRange, &'a Content)> {
-        // _ = self.chapter_range.range(seg.chapter_range()).flat_map(|(ref start_chapter, map)| {
-        // });
-
-        vec![].into_iter()
+    pub fn get_chapter_range_content<'a>(&'a self, seg: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterRange, &'a Content)> {
+         self.chapter_range.range(seg.chapter_range()).flat_map(move|(&start_chapter, map1)| {
+            map1.range(seg.verse_range(start_chapter)).flat_map(move|(&start_verse, ending_chapter_map)| {
+                ending_chapter_map.range(seg.chapter_range()).flat_map(move|(&end_chapter, ending_verse_map)| {
+                    ending_verse_map.range(seg.verse_range(end_chapter)).map(move|(&end_verse, content)| {
+                        (ChapterRange::new(start_chapter, start_verse, end_chapter, end_verse), content)
+                    })
+                })
+            })
+        })
     }
 
     pub fn get_full_chapter_content(&self, seg: &impl SegmentCompare) -> impl Iterator<Item = (FullChapter, &Content)> {
