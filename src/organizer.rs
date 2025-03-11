@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
+use itertools::Itertools;
+
 use crate::compare::SegmentCompare;
 use crate::passage_segments::chapter_range::ChapterRange;
 use crate::passage_segments::chapter_verse::ChapterVerse;
@@ -20,7 +22,7 @@ pub struct GroupedContent<'a, Container: Debug + Default> {
 
 /// It requires default not because the data type must impl Default, but it's container should
 #[derive(Debug, Default)]
-pub struct BookOrganizer<Container: Debug + Default> {
+pub struct PassageOrganizer<Container: Debug + Default> {
     /// `map[chapter][verse] -> Container`
     chapter_verse: BTreeMap<u8, BTreeMap<u8, Container>>,
     /// `map[chapter][start_verse][end_verse] -> Container`
@@ -43,7 +45,7 @@ Perhaps I should return `PassageSegment`s instead of nested u8 groups
 impl Iterator<Item = (ChapterVerse, &Container)>
 which could be serialized to be { "1:1": {...}}
 */
-impl<Container: Debug + Default> BookOrganizer<Container> {
+impl<Container: Debug + Default> PassageOrganizer<Container> {
     pub fn new() -> Self {
         Self {
             chapter_verse: BTreeMap::default(),
@@ -81,34 +83,42 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
     }
 
     pub fn get_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (PassageSegment, &'a Container)> {
-        self.get_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container))
-            .chain(self.get_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)))
-            .chain(self.get_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
-            .chain(self.get_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)))
-            .chain(self.get_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
+        self.iter_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container))
+            .chain(self.iter_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)))
+            .chain(self.iter_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
+            .chain(self.iter_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)))
+            .chain(self.iter_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
     }
 
     pub fn get_all_content_grouped<'a>(&'a self, key: &'a impl SegmentCompare) -> GroupedContent<'a, Container> {
         GroupedContent {
-            chapter_verse: self.get_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            chapter_verse_range: self.get_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            chapter_range: self.get_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            full_chapter: self.get_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            full_chapter_range: self.get_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            chapter_verse: self.iter_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            chapter_verse_range: self.iter_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            chapter_range: self.iter_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            full_chapter: self.iter_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            full_chapter_range: self.iter_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
         }
     }
 }
 
 
-impl<Container: Debug + Default> BookOrganizer<Container> {
-    pub fn get_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerse, &'a Container)> {
+impl<Container: Debug + Default> PassageOrganizer<Container> {
+    pub fn get_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(ChapterVerse, &'a Container)> {
+        self.iter_chapter_verse_content(key).collect_vec()
+    }
+
+    pub fn iter_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerse, &'a Container)> {
         self.chapter_verse.range(key.chapter_range()).flat_map(|(&chapter, map)| {
             map.range(key.verse_range(chapter))
                 .map(move|(&verse, container)| (ChapterVerse::new(chapter, verse), container))
         })
     }
 
-    pub fn get_chapter_verse_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerseRange, &'a Container)> {
+    pub fn get_chapter_verse_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(ChapterVerseRange, &'a Container)> {
+        self.iter_chapter_verse_range_content(key).collect_vec()
+    }
+
+    pub fn iter_chapter_verse_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerseRange, &'a Container)> {
         self.chapter_verse_range.range(key.chapter_range()).flat_map(move |(&chapter, verse_range_map)| {
             // I just do `iter` because I need to start from the beginning of a range because I dont know when it ends
             verse_range_map.iter().filter_map(move|(&(start_verse, end_verse), container)| {
@@ -120,7 +130,11 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
         })
     }
 
-    pub fn get_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterRange, &'a Container)> {
+    pub fn get_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(ChapterRange, &'a Container)> {
+        self.iter_chapter_range_content(key).collect_vec()
+    }
+
+    pub fn iter_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterRange, &'a Container)> {
          self.chapter_range.iter().flat_map(move|(&(start_chapter, end_chapter), verse_range_map)| {
             // I just do `iter` because I need to start from the beginning of a range because I dont know when it ends
             verse_range_map.iter().filter_map(move|(&(start_verse, end_verse), container)| {
@@ -134,12 +148,20 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
         .take_while(|(seg, _)| !key.ends_before(seg))
     }
 
-    pub fn get_full_chapter_content(&self, key: &impl SegmentCompare) -> impl Iterator<Item = (FullChapter, &Container)> {
+    pub fn get_full_chapter_content(&self, key: &impl SegmentCompare) -> Vec<(FullChapter, &Container)> {
+        self.iter_full_chapter_content(key).collect_vec()
+    }
+
+    pub fn iter_full_chapter_content(&self, key: &impl SegmentCompare) -> impl Iterator<Item = (FullChapter, &Container)> {
         self.full_chapter.range(key.chapter_range())
             .map(|(&chapter, container)| (FullChapter::new(chapter), container))
     }
 
-    pub fn get_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
+    pub fn get_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(FullChapterRange, &'a Container)> {
+        self.iter_full_chapter_range_content(key).collect_vec()
+    }
+
+    pub fn iter_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
         // I just do `iter` because I need to start from the beginning of a range because I dont know when it ends
         self.full_chapter_range.iter().filter_map(move |(&(start_chapter, end_chapter), container)| {
             let seg = FullChapterRange::new(start_chapter, end_chapter);
@@ -156,130 +178,130 @@ mod tests {
 
     use crate::passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange};
 
-    use super::BookOrganizer;
+    use super::PassageOrganizer;
 
     #[test]
     fn chapter_verse() {
-        let mut org = BookOrganizer::<()>::new();
+        let mut org = PassageOrganizer::<()>::new();
         for ch in 1..=3 {
             for v in 1..=3 {
                 org.modify(ChapterVerse::new(ch, v));
             }
         }
 
-        assert_eq!(org.get_chapter_verse_content(&ChapterVerse::new(1, 1)).count(), 1);
-        assert_eq!(org.get_chapter_verse_content(&ChapterVerse::new(4, 1)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_content(&ChapterVerse::new(1, 1)).count(), 1);
+        assert_eq!(org.iter_chapter_verse_content(&ChapterVerse::new(4, 1)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_content(&ChapterVerseRange::new(1, 1, 4)).count(), 3);
-        assert_eq!(org.get_chapter_verse_content(&ChapterVerseRange::new(4, 1, 2)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_content(&ChapterVerseRange::new(1, 1, 4)).count(), 3);
+        assert_eq!(org.iter_chapter_verse_content(&ChapterVerseRange::new(4, 1, 2)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_content(&ChapterRange::new(1, 1, 2, 1)).count(), 4);
-        assert_eq!(org.get_chapter_verse_content(&ChapterRange::new(4, 1, 5, 1)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_content(&ChapterRange::new(1, 1, 2, 1)).count(), 4);
+        assert_eq!(org.iter_chapter_verse_content(&ChapterRange::new(4, 1, 5, 1)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_content(&FullChapter::new(2)).count(), 3);
-        assert_eq!(org.get_chapter_verse_content(&FullChapter::new(4)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_content(&FullChapter::new(2)).count(), 3);
+        assert_eq!(org.iter_chapter_verse_content(&FullChapter::new(4)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_content(&FullChapterRange::new(1, 2)).count(), 6);
-        assert_eq!(org.get_chapter_verse_content(&FullChapterRange::new(4, 5)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_content(&FullChapterRange::new(1, 2)).count(), 6);
+        assert_eq!(org.iter_chapter_verse_content(&FullChapterRange::new(4, 5)).count(), 0);
     }
 
     #[test]
     fn chapter_verse_range() {
-        let mut org = BookOrganizer::<()>::new();
+        let mut org = PassageOrganizer::<()>::new();
         org.modify(ChapterVerseRange::new(2, 1, 2));
         org.modify(ChapterVerseRange::new(2, 3, 4));
         org.modify(ChapterVerseRange::new(2, 2, 7));
 
-        assert_eq!(org.get_chapter_verse_range_content(&ChapterVerse::new(2, 1)).count(), 1);
-        assert_eq!(org.get_chapter_verse_range_content(&ChapterVerse::new(2, 2)).count(), 2);
-        assert_eq!(org.get_chapter_verse_range_content(&ChapterVerse::new(4, 1)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_range_content(&ChapterVerse::new(2, 1)).count(), 1);
+        assert_eq!(org.iter_chapter_verse_range_content(&ChapterVerse::new(2, 2)).count(), 2);
+        assert_eq!(org.iter_chapter_verse_range_content(&ChapterVerse::new(4, 1)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_range_content(&ChapterVerseRange::new(2, 1, 4)).count(), 3);
-        assert_eq!(org.get_chapter_verse_range_content(&ChapterVerseRange::new(4, 1, 2)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_range_content(&ChapterVerseRange::new(2, 1, 4)).count(), 3);
+        assert_eq!(org.iter_chapter_verse_range_content(&ChapterVerseRange::new(4, 1, 2)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_range_content(&ChapterRange::new(1, 1, 2, 2)).count(), 2);
-        assert_eq!(org.get_chapter_verse_range_content(&ChapterRange::new(4, 1, 5, 1)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_range_content(&ChapterRange::new(1, 1, 2, 2)).count(), 2);
+        assert_eq!(org.iter_chapter_verse_range_content(&ChapterRange::new(4, 1, 5, 1)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_range_content(&FullChapter::new(2)).count(), 3);
-        assert_eq!(org.get_chapter_verse_range_content(&FullChapter::new(4)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_range_content(&FullChapter::new(2)).count(), 3);
+        assert_eq!(org.iter_chapter_verse_range_content(&FullChapter::new(4)).count(), 0);
 
-        assert_eq!(org.get_chapter_verse_range_content(&FullChapterRange::new(1, 2)).count(), 3);
-        assert_eq!(org.get_chapter_verse_range_content(&FullChapterRange::new(4, 5)).count(), 0);
+        assert_eq!(org.iter_chapter_verse_range_content(&FullChapterRange::new(1, 2)).count(), 3);
+        assert_eq!(org.iter_chapter_verse_range_content(&FullChapterRange::new(4, 5)).count(), 0);
     }
 
     #[test]
     fn chapter_range() {
-        let mut org = BookOrganizer::<()>::new();
+        let mut org = PassageOrganizer::<()>::new();
         org.modify(ChapterRange::new(2, 1, 3, 3));
         org.modify(ChapterRange::new(2, 4, 3, 7));
         org.modify(ChapterRange::new(1, 1, 4, 3));
 
-        assert_eq!(org.get_chapter_range_content(&ChapterVerse::new(2, 1)).count(), 2);
-        assert_eq!(org.get_chapter_range_content(&ChapterVerse::new(2, 4)).count(), 3);
-        assert_eq!(org.get_chapter_range_content(&ChapterVerse::new(4, 1)).count(), 1);
-        assert_eq!(org.get_chapter_range_content(&ChapterVerse::new(5, 1)).count(), 0);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerse::new(2, 1)).count(), 2);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerse::new(2, 4)).count(), 3);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerse::new(4, 1)).count(), 1);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerse::new(5, 1)).count(), 0);
 
-        assert_eq!(org.get_chapter_range_content(&ChapterVerseRange::new(2, 1, 4)).count(), 3);
-        assert_eq!(org.get_chapter_range_content(&ChapterVerseRange::new(2, 5, 8)).count(), 3);
-        assert_eq!(org.get_chapter_range_content(&ChapterVerseRange::new(4, 1, 2)).count(), 1);
-        assert_eq!(org.get_chapter_range_content(&ChapterVerseRange::new(5, 1, 2)).count(), 0);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerseRange::new(2, 1, 4)).count(), 3);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerseRange::new(2, 5, 8)).count(), 3);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerseRange::new(4, 1, 2)).count(), 1);
+        assert_eq!(org.iter_chapter_range_content(&ChapterVerseRange::new(5, 1, 2)).count(), 0);
 
-        assert_eq!(org.get_chapter_range_content(&ChapterRange::new(1, 1, 2, 2)).count(), 2);
-        assert_eq!(org.get_chapter_range_content(&ChapterRange::new(4, 1, 5, 1)).count(), 1);
-        assert_eq!(org.get_chapter_range_content(&ChapterRange::new(4, 4, 5, 1)).count(), 0);
+        assert_eq!(org.iter_chapter_range_content(&ChapterRange::new(1, 1, 2, 2)).count(), 2);
+        assert_eq!(org.iter_chapter_range_content(&ChapterRange::new(4, 1, 5, 1)).count(), 1);
+        assert_eq!(org.iter_chapter_range_content(&ChapterRange::new(4, 4, 5, 1)).count(), 0);
 
-        assert_eq!(org.get_chapter_range_content(&FullChapter::new(2)).count(), 3);
-        assert_eq!(org.get_chapter_range_content(&FullChapter::new(4)).count(), 1);
-        assert_eq!(org.get_chapter_range_content(&FullChapter::new(5)).count(), 0);
+        assert_eq!(org.iter_chapter_range_content(&FullChapter::new(2)).count(), 3);
+        assert_eq!(org.iter_chapter_range_content(&FullChapter::new(4)).count(), 1);
+        assert_eq!(org.iter_chapter_range_content(&FullChapter::new(5)).count(), 0);
 
-        assert_eq!(org.get_chapter_range_content(&FullChapterRange::new(1, 2)).count(), 3);
-        assert_eq!(org.get_chapter_range_content(&FullChapterRange::new(4, 5)).count(), 1);
+        assert_eq!(org.iter_chapter_range_content(&FullChapterRange::new(1, 2)).count(), 3);
+        assert_eq!(org.iter_chapter_range_content(&FullChapterRange::new(4, 5)).count(), 1);
     }
 
     #[test]
     fn full_chapter() {
-        let mut org = BookOrganizer::<()>::new();
+        let mut org = PassageOrganizer::<()>::new();
         for ch in 1..=3 {
             org.modify(FullChapter::new(ch));
         }
 
-        assert_eq!(org.get_full_chapter_content(&ChapterVerse::new(1, 1)).count(), 1);
-        assert_eq!(org.get_full_chapter_content(&ChapterVerse::new(4, 1)).count(), 0);
+        assert_eq!(org.iter_full_chapter_content(&ChapterVerse::new(1, 1)).count(), 1);
+        assert_eq!(org.iter_full_chapter_content(&ChapterVerse::new(4, 1)).count(), 0);
 
-        assert_eq!(org.get_full_chapter_content(&ChapterVerseRange::new(1, 1, 2)).count(), 1);
-        assert_eq!(org.get_full_chapter_content(&ChapterVerseRange::new(4, 1, 2)).count(), 0);
+        assert_eq!(org.iter_full_chapter_content(&ChapterVerseRange::new(1, 1, 2)).count(), 1);
+        assert_eq!(org.iter_full_chapter_content(&ChapterVerseRange::new(4, 1, 2)).count(), 0);
 
-        assert_eq!(org.get_full_chapter_content(&ChapterRange::new(1, 1, 2, 1)).count(), 2);
-        assert_eq!(org.get_full_chapter_content(&ChapterRange::new(4, 1, 5, 1)).count(), 0);
+        assert_eq!(org.iter_full_chapter_content(&ChapterRange::new(1, 1, 2, 1)).count(), 2);
+        assert_eq!(org.iter_full_chapter_content(&ChapterRange::new(4, 1, 5, 1)).count(), 0);
 
-        assert_eq!(org.get_full_chapter_content(&FullChapter::new(2)).count(), 1);
-        assert_eq!(org.get_full_chapter_content(&FullChapter::new(4)).count(), 0);
+        assert_eq!(org.iter_full_chapter_content(&FullChapter::new(2)).count(), 1);
+        assert_eq!(org.iter_full_chapter_content(&FullChapter::new(4)).count(), 0);
 
-        assert_eq!(org.get_full_chapter_content(&FullChapterRange::new(1, 2)).count(), 2);
-        assert_eq!(org.get_full_chapter_content(&FullChapterRange::new(4, 5)).count(), 0);
+        assert_eq!(org.iter_full_chapter_content(&FullChapterRange::new(1, 2)).count(), 2);
+        assert_eq!(org.iter_full_chapter_content(&FullChapterRange::new(4, 5)).count(), 0);
     }
 
     #[test]
     fn full_chapter_range() {
-        let mut org = BookOrganizer::<()>::new();
+        let mut org = PassageOrganizer::<()>::new();
         // 1-3, 2-4, 3-5
         for start in 1..=3 {
             org.modify(FullChapterRange::new(start, start + 2));
         }
 
-        assert_eq!(org.get_full_chapter_range_content(&ChapterVerse::new(1, 1)).count(), 1);
-        assert_eq!(org.get_full_chapter_range_content(&ChapterVerse::new(6, 1)).count(), 0);
+        assert_eq!(org.iter_full_chapter_range_content(&ChapterVerse::new(1, 1)).count(), 1);
+        assert_eq!(org.iter_full_chapter_range_content(&ChapterVerse::new(6, 1)).count(), 0);
 
-        assert_eq!(org.get_full_chapter_range_content(&ChapterVerseRange::new(1, 1, 2)).count(), 1);
-        assert_eq!(org.get_full_chapter_range_content(&ChapterVerseRange::new(6, 1, 2)).count(), 0);
+        assert_eq!(org.iter_full_chapter_range_content(&ChapterVerseRange::new(1, 1, 2)).count(), 1);
+        assert_eq!(org.iter_full_chapter_range_content(&ChapterVerseRange::new(6, 1, 2)).count(), 0);
 
-        assert_eq!(org.get_full_chapter_range_content(&ChapterRange::new(1, 1, 2, 1)).count(), 2);
-        assert_eq!(org.get_full_chapter_range_content(&ChapterRange::new(6, 1, 7, 1)).count(), 0);
+        assert_eq!(org.iter_full_chapter_range_content(&ChapterRange::new(1, 1, 2, 1)).count(), 2);
+        assert_eq!(org.iter_full_chapter_range_content(&ChapterRange::new(6, 1, 7, 1)).count(), 0);
 
-        assert_eq!(org.get_full_chapter_range_content(&FullChapter::new(2)).count(), 2);
-        assert_eq!(org.get_full_chapter_range_content(&FullChapter::new(6)).count(), 0);
+        assert_eq!(org.iter_full_chapter_range_content(&FullChapter::new(2)).count(), 2);
+        assert_eq!(org.iter_full_chapter_range_content(&FullChapter::new(6)).count(), 0);
 
-        // assert_eq!(org.get_full_chapter_range_content(&FullChapterRange::new(1, 2)).count(), 2);
-        // assert_eq!(org.get_full_chapter_range_content(&FullChapterRange::new(6, 7)).count(), 0);
+        assert_eq!(org.iter_full_chapter_range_content(&FullChapterRange::new(1, 2)).count(), 2);
+        assert_eq!(org.iter_full_chapter_range_content(&FullChapterRange::new(6, 7)).count(), 0);
     }
 }
