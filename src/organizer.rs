@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-use itertools::Itertools;
-
 use crate::compare::SegmentCompare;
 use crate::passage_segments::chapter_range::ChapterRange;
 use crate::passage_segments::chapter_verse::ChapterVerse;
@@ -19,7 +17,6 @@ pub struct BookOrganizer<Container: Debug + Default> {
     /// `map[chapter][start_verse][end_verse] -> Container`
     chapter_verse_range: BTreeMap<u8, BTreeMap<(u8, u8), Container>>,
     /// `map[start_chapter][start_verse][end_chapter][end_verse] -> Container`
-    // chapter_range: BTreeMap<u8, BTreeMap<u8, BTreeMap<u8, BTreeMap<u8, Container>>>>,
     chapter_range: BTreeMap<(u8, u8), BTreeMap<(u8, u8), Container>>,
     /// `map[chapter] -> Container`
     full_chapter: BTreeMap<u8, Container>,
@@ -62,10 +59,6 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
                     .entry((seg.verses.start, seg.verses.end)).or_default()
             },
             PassageSegment::ChapterRange(seg) => {
-                // self.chapter_range.entry(seg.start.chapter).or_default()
-                //     .entry(seg.start.verse).or_default()
-                //     .entry(seg.end.chapter).or_default()
-                //     .entry(seg.end.verse).or_default()
                 self.chapter_range.entry((seg.start.chapter, seg.end.chapter)).or_default()
                     .entry((seg.start.verse, seg.end.verse)).or_default()
             },
@@ -78,16 +71,20 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
         }
     }
 
-    // pub fn get_all_content<'a>(&'a self) -> impl Iterator<Item = (PassageSegment, &'a Container)> {
-    //     todo!()
-    // }
+    pub fn get_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (PassageSegment, &'a Container)> {
+        self.get_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container))
+            .chain(self.get_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)))
+            .chain(self.get_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
+            .chain(self.get_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)))
+            .chain(self.get_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
+    }
 }
 
 
 impl<Container: Debug + Default> BookOrganizer<Container> {
-    pub fn get_chapter_verse_content<'a>(&'a self, seg: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerse, &'a Container)> {
-        self.chapter_verse.range(seg.chapter_range()).flat_map(|(&chapter, map)| {
-            map.range(seg.verse_range(chapter))
+    pub fn get_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerse, &'a Container)> {
+        self.chapter_verse.range(key.chapter_range()).flat_map(|(&chapter, map)| {
+            map.range(key.verse_range(chapter))
                 .map(move|(&verse, container)| (ChapterVerse::new(chapter, verse), container))
         })
     }
@@ -103,19 +100,6 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
             .take_while(|(seg, _)| !key.ends_before(seg))
         })
     }
-
-
-    // pub fn get_chapter_range_content<'a>(&'a self, seg: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterRange, &'a Container)> {
-    //      self.chapter_range.range(seg.chapter_range()).flat_map(move|(&start_chapter, map1)| {
-    //         map1.range(seg.verse_range(start_chapter)).flat_map(move|(&start_verse, ending_chapter_map)| {
-    //             ending_chapter_map.range(seg.chapter_range()).flat_map(move|(&end_chapter, ending_verse_map)| {
-    //                 ending_verse_map.range(seg.verse_range(end_chapter)).map(move|(&end_verse, container)| {
-    //                     (ChapterRange::new(start_chapter, start_verse, end_chapter, end_verse), container)
-    //                 })
-    //             })
-    //         })
-    //     })
-    // }
 
     pub fn get_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterRange, &'a Container)> {
          self.chapter_range.iter().flat_map(move|(&(start_chapter, end_chapter), verse_range_map)| {
