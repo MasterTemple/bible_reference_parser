@@ -1,4 +1,4 @@
-use crate::segment::PassageSegment;
+use crate::{compare::SegmentCompare, segment::PassageSegment};
 
 pub struct ExplicitChapterVerseRange {
     start_chapter: u8,

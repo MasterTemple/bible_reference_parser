@@ -43,7 +43,7 @@ pub(crate) trait SegmentParseMethods: ParsableSegment {
     }
 
     fn expect_char(chars: &mut Peekable<Chars<'_>>, char: char) -> Result<(), String> {
-        if dbg!(chars.next()).is_some_and(|c| c == char) {
+        if chars.next().is_some_and(|c| c == char) {
             Ok(())
         } else {
             Err(format!("Expected format '{}'", Self::EXPECTED_FORMAT))
@@ -52,7 +52,7 @@ pub(crate) trait SegmentParseMethods: ParsableSegment {
 
     /// It must be peekable to not consume the following element
     fn take_number(chars: &mut Peekable<Chars<'_>>) -> Result<u8, String> {
-        dbg!(dbg!(chars.peeking_take_while(|c| c.is_numeric()).join("")).parse::<u8>())
+        chars.peeking_take_while(|c| c.is_numeric()).join("").parse::<u8>()
             .map_err(|_| format!("Expected format '{}'", Self::EXPECTED_FORMAT))
     }
 }

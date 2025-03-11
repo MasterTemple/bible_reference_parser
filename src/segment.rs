@@ -50,9 +50,8 @@ impl PartialOrd for PassageSegment {
     }
 }
 
-// Helpful methods for accessing data
-impl PassageSegment {
-    pub fn get_starting_chapter(&self) -> u8 {
+impl SegmentCompare for PassageSegment {
+    fn get_starting_chapter(&self) -> u8 {
         match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_starting_chapter(),
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_starting_chapter(),
@@ -62,7 +61,7 @@ impl PassageSegment {
         }
     }
 
-    pub fn get_starting_verse(&self) -> u8 {
+    fn get_starting_verse(&self) -> u8 {
         match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_starting_verse(),
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_starting_verse(),
@@ -72,7 +71,7 @@ impl PassageSegment {
         }
     }
 
-    pub fn get_ending_chapter(&self) -> u8 {
+    fn get_ending_chapter(&self) -> u8 {
         match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_ending_chapter(),
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_ending_chapter(),
@@ -82,7 +81,7 @@ impl PassageSegment {
         }
     }
 
-    pub fn get_ending_verse(&self) -> Option<u8> {
+    fn get_ending_verse(&self) -> Option<u8> {
         match self {
             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_ending_verse(),
             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_ending_verse(),
@@ -91,7 +90,51 @@ impl PassageSegment {
             PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_ending_verse(),
         }
     }
+
 }
+
+// Helpful methods for accessing data
+// impl PassageSegment {
+//     pub fn get_starting_chapter(&self) -> u8 {
+//         match self {
+//             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_starting_chapter(),
+//             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_starting_chapter(),
+//             PassageSegment::ChapterRange(book_range) => book_range.get_starting_chapter(),
+//             PassageSegment::FullChapter(full_chapter) => full_chapter.get_starting_chapter(),
+//             PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_starting_chapter(),
+//         }
+//     }
+//
+//     pub fn get_starting_verse(&self) -> u8 {
+//         match self {
+//             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_starting_verse(),
+//             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_starting_verse(),
+//             PassageSegment::ChapterRange(book_range) => book_range.get_starting_verse(),
+//             PassageSegment::FullChapter(full_chapter) => full_chapter.get_starting_verse(),
+//             PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_starting_verse(),
+//         }
+//     }
+//
+//     pub fn get_ending_chapter(&self) -> u8 {
+//         match self {
+//             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_ending_chapter(),
+//             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_ending_chapter(),
+//             PassageSegment::ChapterRange(book_range) => book_range.get_ending_chapter(),
+//             PassageSegment::FullChapter(full_chapter) => full_chapter.get_ending_chapter(),
+//             PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_ending_chapter(),
+//         }
+//     }
+//
+//     pub fn get_ending_verse(&self) -> Option<u8> {
+//         match self {
+//             PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.get_ending_verse(),
+//             PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.get_ending_verse(),
+//             PassageSegment::ChapterRange(book_range) => book_range.get_ending_verse(),
+//             PassageSegment::FullChapter(full_chapter) => full_chapter.get_ending_verse(),
+//             PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.get_ending_verse(),
+//         }
+//     }
+// }
 
 // Easy constructors
 impl PassageSegment {
