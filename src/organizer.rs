@@ -70,7 +70,8 @@ pub struct BookOrganizer<Container: Debug + Default> {
     /// `map[chapter] -> Container`
     full_chapter: BTreeMap<u8, Container>,
     /// `map[start_chapter][end_chapter] -> Container`
-    full_chapter_range: BTreeMap<u8, BTreeMap<u8, Container>>,
+    // full_chapter_range: BTreeMap<u8, BTreeMap<u8, Container>>,
+    full_chapter_range: BTreeMap<(u8, u8), Container>,
 }
 
 /**
@@ -118,8 +119,7 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
                 self.full_chapter.entry(seg.chapter).or_default()
             },
             PassageSegment::FullChapterRange(seg) => {
-                self.full_chapter_range.entry(seg.start.chapter).or_default()
-                    .entry(seg.end.chapter).or_default()
+                self.full_chapter_range.entry((seg.start.chapter, seg.end.chapter)).or_default()
             },
         }
     }
@@ -166,19 +166,30 @@ impl<Container: Debug + Default> BookOrganizer<Container> {
     }
 
 
+    // pub fn get_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
+    //     self.full_chapter_range.range(1..=key.ending_chapter()).flat_map(move|(&start_chapter, map)| {
+    //         // I just do `iter` because the start chapter has already matched and I want to include
+    //         // everything that it terminates at, because it all encloses this
+    //         map.iter().filter_map(move |(&end_chapter, container)| {
+    //             let full_chapter_range = FullChapterRange::new(start_chapter, end_chapter);
+    //             full_chapter_range.overlaps_with(key).then(|| (full_chapter_range, container))
+    //         })
+    //         // early terminate when the key ends before the start of this segment
+    //         .take_while(|(seg, _)| !key.ends_before(seg))
+    //     })
+    // }
+
     pub fn get_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
-        // self.full_chapter_range.range(seg.chapter_range()).flat_map(move|(&start_chapter, map)| {
-        self.full_chapter_range.range(1..=key.ending_chapter()).flat_map(move|(&start_chapter, map)| {
-            // I just do `iter` because the start chapter has already matched and I want to include
-            // everything that it terminates at, because it all encloses this
-            map.iter().filter_map(move |(&end_chapter, container)| {
-                let full_chapter_range = FullChapterRange::new(start_chapter, end_chapter);
-                full_chapter_range.overlaps_with(key).then(|| (full_chapter_range, container))
-            })
-            // early terminate when the key ends before the start of this segment
-            .take_while(|(seg, _)| !key.ends_before(seg))
+        // I just do `iter` because I need to start from the beginning of a range because I dont
+        // know when it ends
+        self.full_chapter_range.iter().filter_map(move |(&(start_chapter, end_chapter), container)| {
+            let full_chapter_range = FullChapterRange::new(start_chapter, end_chapter);
+            full_chapter_range.overlaps_with(key).then(|| (full_chapter_range, container))
         })
+        // early terminate when the key ends before the start of this segment
+        .take_while(|(seg, _)| !key.ends_before(seg))
     }
+
 }
 
 #[cfg(test)]
