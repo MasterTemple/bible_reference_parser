@@ -21,7 +21,10 @@ pub struct BookOrganizer<Content: Debug> {
 }
 
 /**
-TODO: Figure out if it is more efficient to remove all references on u8
+TODO:
+- Figure out if it is more efficient to remove all references on u8
+- They are much smaller, but they are already created
+- Or maybe it is a reference that is just being incremented
 */
 impl<Content: Debug> BookOrganizer<Content> {
     pub fn new() -> Self {
@@ -34,10 +37,13 @@ impl<Content: Debug> BookOrganizer<Content> {
         }
     }
 
-    pub fn get_chapter_verse_content<'a>(&'a self, seg: &'a impl SegmentCompare) -> impl Iterator<Item = (u8, impl Iterator<Item = (&'a u8, &'a Content)>)> {
+    pub fn get_chapter_verse_content<'a>(&'a self, seg: &'a impl SegmentCompare) -> impl Iterator<Item = (u8, impl Iterator<Item = (u8, &'a Content)>)> {
         self.chapter_verse.range(seg.chapter_range())
             .map(|(chapter, map)| {
-                (*chapter, map.range(seg.verse_range(*chapter)))
+                (
+                    *chapter,
+                    map.range(seg.verse_range(*chapter)).map(|(verse, content)| (*verse, content))
+                )
             })
     }
 
@@ -52,8 +58,9 @@ impl<Content: Debug> BookOrganizer<Content> {
         })
     }
 
-    pub fn get_full_chapter_content(&self, seg: &impl SegmentCompare) -> impl Iterator<Item = (&u8, &Content)> {
+    pub fn get_full_chapter_content(&self, seg: &impl SegmentCompare) -> impl Iterator<Item = (u8, &Content)> {
         self.full_chapter.range(seg.chapter_range())
+            .map(|(chapter, content)| (*chapter, content))
     }
 
 
