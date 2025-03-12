@@ -1,4 +1,5 @@
 pub mod bible;
+pub mod book_chapter_verse;
 pub mod compare;
 pub mod maps;
 pub mod organizer;
