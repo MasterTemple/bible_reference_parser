@@ -1,3 +1,4 @@
+pub mod bible;
 pub mod compare;
 pub mod maps;
 pub mod organizer;
