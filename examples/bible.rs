@@ -19,23 +19,24 @@ fn main() -> Result<(), String> {
     println!("{:#?}", john.get_chapter_verse_content(&psg("1:1")));
     /* [
         (
-            ChapterVerse { chapter: 1, verse: 1, },
+            ChapterVerse { chapter: 1, verse: 1 },
             "In the beginning was the Word, and the Word was with God, and the Word was God.",
         ),
     ] */
 
+    // even across ranges
     println!("{:#?}", john.get_chapter_verse_content(&psg("1:1-3")));
     /* [
         (
-            ChapterVerse { chapter: 1, verse: 1, },
+            ChapterVerse { chapter: 1, verse: 1 },
             "In the beginning was the Word, and the Word was with God, and the Word was God.",
         ),
         (
-            ChapterVerse { chapter: 1, verse: 2, },
+            ChapterVerse { chapter: 1, verse: 2 },
             "He was in the beginning with God.",
         ),
         (
-            ChapterVerse { chapter: 1, verse: 3, },
+            ChapterVerse { chapter: 1, verse: 3 },
             "All things were made through him, and without him was not any thing made that was made.",
         ),
     ] */

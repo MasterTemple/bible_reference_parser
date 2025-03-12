@@ -20,18 +20,80 @@ fn main() -> Result<(), String> {
     // if the container is not initialized, it initializes it 
     *data.modify(psg("1:1")) = vec![MyData::Note("Here is a note on 1:1".into())];
     data.modify(psg("1:2")).push(MyData::Note("Here is a note on 1:2".into()));
+    data.modify(psg("1:2")).push(MyData::Note("Here is another note on 1:2".into()));
     data.modify(psg("1")).push(MyData::Note("Some thoughts on chapter 1".into()));
     data.modify(psg("1:2-3")).push(MyData::Tag("#some-tag".into()));
 
     // get content of a specific proximity
     println!("{:#?}", data.get_chapter_verse_content(&psg("1:2")));
+    /* [
+      (
+        ChapterVerse { chapter: 1, verse: 2 },
+        [
+            Note("Here is a note on 1:2"),
+            Note("Here is another note on 1:2"),
+        ],
+      )
+    ] */
 
     // get all content
     println!("{:#?}", data.get_all_content(&psg("1:1-3")).collect_vec());
+    /* [
+        (
+            ChapterVerse(ChapterVerse { chapter: 1, verse: 1 }),
+            [ Note("Here is a note on 1:1"), ],
+        ),
+        (
+            ChapterVerse(ChapterVerse { chapter: 1, verse: 2 }),
+            [
+                Note("Here is a note on 1:2"),
+                Note("Here is another note on 1:2"),
+            ],
+        ),
+        (
+            ChapterVerseRange(ChapterVerseRange { chapter: 1, verses: RangePair { start: 2, end: 3 } }),
+            [ Tag("#some-tag"), ],
+        ),
+        (
+            FullChapter(FullChapter { chapter: 1 }),
+            [ Note("Some thoughts on chapter 1"), ],
+        ),
+    ] */
 
     // get all content grouped by proximity
     println!("{:#?}", data.get_all_content_grouped(&psg("1:1-3")));
-
+    /* GroupedContent {
+        chapter_verse: [
+            (
+                ChapterVerse { chapter: 1, verse: 1 },
+                [ Note("Here is a note on 1:1"), ],
+            ),
+            (
+                ChapterVerse { chapter: 1, verse: 2 },
+                [
+                    Note("Here is a note on 1:2"),
+                    Note("Here is another note on 1:2"),
+                ],
+            ),
+        ],
+        chapter_verse_range: [
+            (
+                ChapterVerseRange { chapter: 1, verses: RangePair { start: 2, end: 3 } },
+                [
+                    Tag("#some-tag"),
+                ],
+            ),
+        ],
+        chapter_range: [],
+        full_chapter: [
+            (
+                FullChapter { chapter: 1 },
+                [ Note("Some thoughts on chapter 1"), ],
+            ),
+        ],
+        full_chapter_range: [],
+    }
+    */
 
     Ok(())
 }
