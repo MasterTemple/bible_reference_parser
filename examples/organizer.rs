@@ -1,8 +1,11 @@
+use std::collections::BTreeMap;
+
 use bible_reference_parser::{compare::SegmentCompare, organizer::PassageOrganizer, parse::ParsableSegment, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter}, segment::PassageSegment, segments::PassageSegments};
 use itertools::Itertools;
+use serde::Serialize;
 
 // put literally anything here
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 enum MyData {
     Note(String),
     Tag(String),
@@ -10,7 +13,7 @@ enum MyData {
 
 type MyContainer = Vec<MyData>;
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let psg = |p: &str| PassageSegment::parse(p).unwrap();
     // the best practice would be to have one [`PassageOrganizer`] per book
     // but books are beyond the scope of this module
@@ -37,7 +40,7 @@ fn main() -> Result<(), String> {
     ] */
 
     // get all content
-    println!("{:#?}", data.get_all_content(&psg("1:1-3")).collect_vec());
+    println!("{:#?}", data.get_all_content(&psg("1:1-3")));
     /* [
         (
             ChapterVerse(ChapterVerse { chapter: 1, verse: 1 }),
@@ -94,6 +97,41 @@ fn main() -> Result<(), String> {
         full_chapter_range: [],
     }
     */
+
+    // one way to get all content of a passage segment list
+    let passage = PassageSegments::parse("1:1,3-4")?;
+    let map: BTreeMap<_, _> = passage.iter().map(|psg| (psg, data.get_all_content(psg))).collect();
+    println!("{map:#?}");
+    /* {
+        ChapterVerse( ChapterVerse { chapter: 1, verse: 1 } ): [
+            (
+                ChapterVerse( ChapterVerse { chapter: 1, verse: 1 } ),
+                [
+                    Note( "Here is a note on 1:1" ),
+                ],
+            ),
+            (
+                FullChapter( FullChapter { chapter: 1 } ),
+                [
+                    Note( "Some thoughts on chapter 1" ),
+                ],
+            ),
+        ],
+        ChapterVerseRange( ChapterVerseRange { chapter: 1, verses: RangePair { start: 3, end: 4 } } ): [
+            (
+                ChapterVerseRange( ChapterVerseRange { chapter: 1, verses: RangePair { start: 2, end: 3 } } ),
+                [
+                    Tag( "#some-tag" ),
+                ],
+            ),
+            (
+                FullChapter( FullChapter { chapter: 1 } ),
+                [
+                    Note( "Some thoughts on chapter 1" ),
+                ],
+            ),
+        ],
+    } */
 
     Ok(())
 }

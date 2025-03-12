@@ -205,7 +205,6 @@ fn parse_reference_segments(input: &str) -> PassageSegments {
                     segments.push(PassageSegment::full_chapter(chapter));
                     continue;
                 }
-                check_for_full_chapters = false;
 
                 // handle `v`
                 let v = range.parse().unwrap();
@@ -214,6 +213,7 @@ fn parse_reference_segments(input: &str) -> PassageSegments {
                     verse: v,
                 }))
             }
+            check_for_full_chapters = false;
         }
     }
     PassageSegments(segments)
@@ -266,6 +266,14 @@ mod parse_tests {
         assert_eq!(parse("1-2"), vec![
             PassageSegment::full_chapter_range(1, 2)
         ]);
+    }
+    
+    #[test]
+    fn change_out_of_chapter() {
+        assert_eq!(parse("1:1,3-4"), vec![
+            PassageSegment::chapter_verse(1, 1),
+            PassageSegment::chapter_verse_range(1, 3, 4),
+        ])
     }
 
     // John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8

@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::collections::BTreeMap;
 
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 
 use crate::compare::SegmentCompare;
 use crate::passage_segments::chapter_verse::ChapterVerse;
@@ -12,7 +13,7 @@ use crate::passage_segments::chapter_verse::ChapterVerse;
 /// complex ones might use enums to indicate headers, indentation, and so on, or structs to store
 /// an interlinear Bible
 /// - This is not meant to store related media
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct BibleBookOrganizer<Content: Debug + Default> {
     /// `map[chapter][verse] -> Content`
     chapter_verse: BTreeMap<u8, BTreeMap<u8, Content>>,

@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 
 use itertools::Itertools;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 use crate::compare::SegmentCompare;
 use crate::passage_segments::chapter_range::ChapterRange;
@@ -11,7 +13,7 @@ use crate::passage_segments::full_chapter::FullChapter;
 use crate::passage_segments::full_chapter_range::FullChapterRange;
 use crate::segment::PassageSegment;
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct GroupedContent<'a, Container: Debug + Default> {
     pub chapter_verse: Vec<(ChapterVerse, &'a Container)>,
     pub chapter_verse_range: Vec<(ChapterVerseRange, &'a Container)>,
@@ -82,12 +84,17 @@ impl<Container: Debug + Default> PassageOrganizer<Container> {
         }
     }
 
-    pub fn get_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (PassageSegment, &'a Container)> {
+    pub fn iter_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (PassageSegment, &'a Container)> {
         self.iter_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container))
             .chain(self.iter_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)))
             .chain(self.iter_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
             .chain(self.iter_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)))
             .chain(self.iter_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
+    }
+
+    pub fn get_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(PassageSegment, &'a Container)> {
+        self.iter_all_content(key)
+            .collect_vec()
     }
 
     pub fn get_all_content_grouped<'a>(&'a self, key: &'a impl SegmentCompare) -> GroupedContent<'a, Container> {
