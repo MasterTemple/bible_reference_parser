@@ -5,6 +5,26 @@ use serde::{Deserialize, Serialize};
 use crate::{compare::SegmentCompare, segment::PassageSegment};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BookPassageSegments {
+    book: u8,
+    segments: PassageSegments,
+}
+
+impl BookPassageSegments {
+    pub fn parse(book: u8, segment_input: &str) -> Result<Self, String> {
+        Ok(Self {
+            book,
+            segments: PassageSegments::parse(segment_input)?,
+        })
+    }
+
+    pub fn overlaps_with(&self, other: &BookPassageSegments) -> bool {
+        if self.book != other.book { return false; }
+        self.segments.contains_overlap(&other.segments)
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PassageSegments(pub Vec<PassageSegment>);
 
 impl Deref for PassageSegments {

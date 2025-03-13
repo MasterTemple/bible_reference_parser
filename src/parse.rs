@@ -8,7 +8,7 @@ use crate::{passage_segments::chapter_verse::ChapterVerse, segment::PassageSegme
 /// Basically, start with and end with a digit
 /// and then collect digits joined by ranges `-–——⸺` or segments `,;` or chapters `:`
 static POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^ *\d+( *[,:;\-–——⸺] *\d+)*").unwrap());
+    Lazy::new(|| Regex::new(r"^ *\d+( *[\.,:;\-–——⸺] *\d+)*").unwrap());
 
 const ALL_DASHES: [char; 5] = ['-', '–', '—', '—', '⸺'];
 const SEGMENT_SPLITTERS: [char; 2] = [',', ';'];
@@ -71,10 +71,12 @@ pub trait ParsableSegment: Sized + TryFrom<PassageSegment, Error = String> {
     /// - This first calls [`ParsableSegment::parse_strict`] and if it fails, tries parsing
     /// entire set of passage segments of all kinds (with all the character replacements)
     /// and then match on the first segment or try and coerce it into the desired type
+    /// - There must only be **exactly 1** segment matched
     fn parse(input: &str) -> Result<Self, String>  {
         Self::parse_strict(input).or_else(|_| {
             let segments = PassageSegments::parse(input).map_err(|_| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
             if segments.is_empty() { Err(String::from("No segments found"))? }
+            if segments.len() > 1 { Err(format!("Expected exactly 1 segment, found {}", segments.len()))? }
             Self::try_from(segments[0])
         })
     }
@@ -104,6 +106,9 @@ fn match_and_sanitize_segment_input(segment_input: &str) -> Option<String> {
 
     // swap weird hyphens with normal dash
     let input = &segment_match.replace(ALL_DASHES, "-");
+
+    // swap period with colon (to support 'Jn1.1')
+    let input = &input.replace(".", ":");
 
     // input now only contains the following characters: [\d,:;-]
     let input = NON_SEGMENT_CHARACTERS.replace_all(&input, "").to_string();
@@ -232,6 +237,10 @@ mod parse_tests {
     #[test]
     fn chapter_verse() {
         assert_eq!(parse("1:2"), vec![
+            PassageSegment::chapter_verse(1, 2)
+        ]);
+
+        assert_eq!(parse("1.2"), vec![
             PassageSegment::chapter_verse(1, 2)
         ]);
     }

@@ -1,9 +1,11 @@
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct BookChapterVerse {
-    book: u16,
-    chapter: u16,
-    verse: u16,
+pub struct BookChapterVerseId {
+    book: u8,
+    chapter: u8,
+    verse: u8,
 }
+
+pub const LAST_VERSE: u16 = 31_102;
 
 /// - Genesis has 0 verses before it
 /// - Genesis is 1533 verses
@@ -11,7 +13,7 @@ pub struct BookChapterVerse {
 /// - Exodus has 1533 verses before it
 /// - Exodus is 1213 verses
 /// - Exodus 1 has 22 verses, Exodus 2 has 25 verses, and so on
-const VERSE_COUNT_PAIRS: &[(u16, u16, &[u16])] = &[
+pub const VERSE_COUNT_PAIRS: &[(u16, u16, &[u16])] = &[
   (0, 1533, &[31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33, 38, 18, 34, 24, 20, 67, 34, 35, 46, 22, 35, 43, 55, 32, 20, 31, 29, 43, 36, 30, 23, 23, 57, 38, 34, 34, 28, 34, 31, 22, 33, 26]),
   (1533, 1213, &[22, 25, 22, 31, 23, 30, 25, 32, 35, 29, 10, 51, 22, 31, 27, 36, 16, 27, 25, 26, 36, 31, 33, 18, 40, 37, 21, 43, 46, 38, 18, 35, 23, 35, 35, 38, 29, 31, 43, 38]),
   (2746, 859, &[17, 16, 17, 35, 19, 30, 38, 36, 24, 20, 47, 8, 59, 57, 33, 34, 16, 30, 37, 27, 24, 33, 44, 23, 55, 46, 34]),
@@ -80,15 +82,44 @@ const VERSE_COUNT_PAIRS: &[(u16, u16, &[u16])] = &[
   (30698, 404, &[20, 29, 22, 11, 14, 17, 17, 13, 21, 11, 19, 17, 18, 20, 8, 21, 18, 24, 21, 15, 27, 21])
 ];
 
-impl BookChapterVerse {
-    pub fn from_id(mut id: u16) -> Result<Self, ()> {
+impl BookChapterVerseId {
+    pub fn book(&self) -> u8 { self.book }
+    pub fn chapter(&self) -> u8 { self.chapter }
+    pub fn verse(&self) -> u8 { self.verse }
+
+    /// - This method validates the book/chapter/verse numbers
+    pub fn new(book: u8, chapter: u8, verse: u8) -> Result<Self, String> {
+        let book_err = || format!("There is no 'Book {}' in the Bible", book);
+        let chapter_err = || format!("There is no 'Chapter {}' in 'Book {}'", chapter, book);
+        let verse_err = || format!("There is no 'Verse {}' in 'Chapter {}' of 'Book {}'", verse, chapter, book);
+
+        if book == 0 { Err(book_err())? }
+        if chapter == 0 { Err(chapter_err())? }
+        if verse == 0 { Err(verse_err())? }
+
+        let pair = VERSE_COUNT_PAIRS.get((book - 1) as usize).ok_or_else(book_err)?;
+        let chapter_verse_count = pair.2.get((chapter - 1) as usize).ok_or_else(chapter_err)?;
+        if verse > (*chapter_verse_count as u8) { Err(verse_err())? }
+
+        Ok(Self {
+            book,
+            chapter,
+            verse,
+        })
+    }
+
+    /// - This method validates the book/chapter/verse numbers
+    pub fn from_verse(mut id: u16) -> Result<Self, String> {
+        if id == 0 {
+            return Err(format!("There is not 'Book {}' in the Bible", id));
+        }
         id -= 1;
         let res = VERSE_COUNT_PAIRS.binary_search_by_key(&id, |(before, _, _)| *before);
         let book = match res {
             Ok(idx) => idx,
             Err(idx) => {
                 if idx >= VERSE_COUNT_PAIRS.len() {
-                    return Err(());
+                    return Err(format!("There is not 'Book {}' in the Bible", idx));
                 }
                 idx - 1
             },
@@ -108,46 +139,161 @@ impl BookChapterVerse {
         }
 
         // verses start at 1
-        let verse = remaining + 1;
+        let verse = (remaining + 1) as u8;
 
         dbg!(book, before, total);
         
         // Genesis is book 1 not 0
-        let book = (book + 1) as u16;
+        let book = (book + 1) as u8;
 
-        Ok(BookChapterVerse { book, chapter, verse })
+        BookChapterVerseId::new(book, chapter, verse)
+        // Ok(BookChapterVerseId { book, chapter, verse })
+    }
+
+    /// This will crash if BookChapterVerseId does not hold a valid verse
+    pub fn as_verse(&self) -> u16 {
+        let book = VERSE_COUNT_PAIRS[(self.book - 1) as usize];
+        let verses_before_book = book.0;
+        let verses_before_chapter: u16 = book.2.iter().take((self.chapter - 1) as usize).sum();
+        let verses_before_verse = self.verse as u16;
+        verses_before_book + verses_before_chapter + verses_before_verse
+    }
+
+    /// - This method indirectly validates the book/chapter/verse numbers
+    pub fn from_id_str(input: &str) -> Result<BookChapterVerseId, String> {
+        if input.len() != 8 { return Err(format!("Expected length of 8: 2 digits for the book, 3 digits for the chapter, and 3 digits for the verse")); }
+        let book = &input[0..=1];
+        let book = book.parse().map_err(|_| format!("Could not parse book from '{}'", book))?;
+        let chapter = &input[2..=4];
+        let chapter = chapter.parse().map_err(|_| format!("Could not parse chapter from '{}'", chapter))?;
+        let verse = &input[5..=7];
+        let verse = verse.parse().map_err(|_| format!("Could not parse verse from '{}'", verse))?;
+        BookChapterVerseId::new(book, chapter, verse)
+    }
+
+    pub fn as_id_string(&self) -> String {
+        format!(
+            "{:0>2}{:0>3}{:0>3}",
+            self.book,
+            self.chapter,
+            self.verse,
+        )
     }
 }
 
 #[cfg(test)]
 mod book_chapter_verse_tests {
-    use super::BookChapterVerse;
+    use super::BookChapterVerseId;
 
     #[test]
-    fn from_id() {
+    fn new() -> Result<(), String> {
+        assert!(BookChapterVerseId::new(0, 1, 1).is_err());
+        assert!(BookChapterVerseId::new(1, 0, 1).is_err());
+        assert!(BookChapterVerseId::new(1, 1, 0).is_err());
+        assert!(BookChapterVerseId::new(1, 1, 1).is_ok());
+        assert!(BookChapterVerseId::new(1, 1, 31).is_ok());
+        assert!(BookChapterVerseId::new(1, 1, 32).is_err());
+        assert!(BookChapterVerseId::new(1, 2, 1).is_ok());
+        assert!(BookChapterVerseId::new(1, 2, 25).is_ok());
+        assert!(BookChapterVerseId::new(1, 2, 26).is_err());
+        assert!(BookChapterVerseId::new(1, 50, 26).is_ok());
+        assert!(BookChapterVerseId::new(1, 50, 27).is_err());
+        assert!(BookChapterVerseId::new(1, 51, 1).is_err());
+        assert!(BookChapterVerseId::new(2, 1, 1).is_ok());
+        assert!(BookChapterVerseId::new(2, 1, 22).is_ok());
+        assert!(BookChapterVerseId::new(2, 1, 23).is_err());
+        assert!(BookChapterVerseId::new(67, 1, 1).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn from_verse() -> Result<(), String> {
         assert_eq!(
-            BookChapterVerse::from_id(1).unwrap(),
-            BookChapterVerse { book: 1, chapter: 1, verse: 1 }
+            BookChapterVerseId::from_verse(1)?,
+            BookChapterVerseId::new(1, 1, 1)?
         );
 
         assert_eq!(
-            BookChapterVerse::from_id(2).unwrap(),
-            BookChapterVerse { book: 1, chapter: 1, verse: 2 }
+            BookChapterVerseId::from_verse(2)?,
+            BookChapterVerseId::new(1, 1, 2)?
         );
 
         assert_eq!(
-            BookChapterVerse::from_id(23146).unwrap(),
-            BookChapterVerse { book: 40, chapter: 1, verse: 1 }
+            BookChapterVerseId::from_verse(23146)?,
+            BookChapterVerseId::new(40, 1, 1)?
         );
 
         assert_eq!(
-            BookChapterVerse::from_id(23170).unwrap(),
-            BookChapterVerse { book: 40, chapter: 1, verse: 25 }
+            BookChapterVerseId::from_verse(23170)?,
+            BookChapterVerseId::new(40, 1, 25)?
         );
 
         assert_eq!(
-            BookChapterVerse::from_id(23171).unwrap(),
-            BookChapterVerse { book: 40, chapter: 2, verse: 1 }
+            BookChapterVerseId::from_verse(23171)?,
+            BookChapterVerseId::new(40, 2, 1)?
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn as_verse() -> Result<(), String> {
+        assert_eq!(
+            BookChapterVerseId::new(1, 1, 1)?.as_verse(),
+            1,
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(1, 1, 2)?.as_verse(),
+            2,
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(40, 1, 1)?.as_verse(),
+            23146,
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(40, 1, 25)?.as_verse(),
+            23170,
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(40, 2, 1)?.as_verse(),
+            23171,
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn from_id_str() -> Result<(), String> {
+        assert_eq!(
+            BookChapterVerseId::from_id_str("01001001")?,
+            BookChapterVerseId::new(1, 1, 1)?
+        );
+
+        assert_eq!(
+            BookChapterVerseId::from_id_str("43011035")?,
+            BookChapterVerseId::new(43, 11, 35)?
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn as_id_str() -> Result<(), String> {
+        assert_eq!(
+            BookChapterVerseId::new(1, 1, 1 )?.as_id_string(),
+            String::from("01001001")
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(43, 11, 35)?.as_id_string(),
+            String::from("43011035")
+        );
+
+        Ok(())
     }
 }

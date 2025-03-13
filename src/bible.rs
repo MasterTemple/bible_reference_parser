@@ -4,8 +4,13 @@ use std::collections::BTreeMap;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::compare::SegmentCompare;
+use crate::compare::{PassageContent, SegmentCompare};
 use crate::passage_segments::chapter_verse::ChapterVerse;
+
+// pub struct PassageContent<'a, Segment: SegmentCompare, Content> {
+//     segment: Segment,
+//     content: &'a Content
+// }
 
 /// - This is a struct like [`PassageOrganizer`], but is meant to store the content of the Bible
 /// - It only stores content in chapter:verse segments, because that is how 
@@ -31,14 +36,18 @@ impl<Content: Debug + Default> BibleBookOrganizer<Content> {
             .entry(seg.verse).or_default()
     }
 
-    pub fn get_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(ChapterVerse, &'a Content)> {
+    pub fn get_chapter_verse_content<'a>(&'a self, chapter: u8, verse: u8) -> Option<&'a Content> {
+        self.chapter_verse.get(&chapter)?.get(&verse)
+    }
+
+    pub fn get_segment_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, ChapterVerse, Content>>  {
         self.iter_chapter_verse_content(key).collect_vec()
     }
 
-    pub fn iter_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerse, &'a Content)> {
+    pub fn iter_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, ChapterVerse, Content>> {
         self.chapter_verse.range(key.chapter_range()).flat_map(|(&chapter, map)| {
             map.range(key.verse_range(chapter))
-                .map(move|(&verse, content)| (ChapterVerse::new(chapter, verse), content))
+                .map(move|(&verse, content)| ChapterVerse::new(chapter, verse).with_content(content))
         })
     }
 }
@@ -60,7 +69,7 @@ mod tests {
         *john.modify(ChapterVerse::parse("1:3")?) =
             String::from("All things were made through him, and without him was not any thing made that was made.");
         
-        println!("{:#?}", john.get_chapter_verse_content(&ChapterVerse::parse("1:1")?));
+        println!("{:#?}", john.get_segment_content(&ChapterVerse::parse("1:1")?));
         /* [
             (
                 ChapterVerse { chapter: 1, verse: 1, },
@@ -68,7 +77,7 @@ mod tests {
             ),
         ] */
 
-        println!("{:#?}", john.get_chapter_verse_content(&ChapterVerseRange::parse("1:1-3")?));
+        println!("{:#?}", john.get_segment_content(&ChapterVerseRange::parse("1:1-3")?));
         /* [
             (
                 ChapterVerse { chapter: 1, verse: 1, },
