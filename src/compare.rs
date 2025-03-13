@@ -3,7 +3,7 @@ use std::fmt::Debug;
 
 use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment};
 
-pub trait SegmentCompare: Copy + Sized + Debug {
+pub trait SegmentCompare: Copy + Sized + Debug +  Into<PassageSegment> {
     fn starting_verse(&self) -> u8;
 
     fn starting_chapter(&self) -> u8;
@@ -100,9 +100,19 @@ pub trait SegmentCompare: Copy + Sized + Debug {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 pub struct PassageContent<'a, Segment: SegmentCompare, Content> {
-    segment: Segment,
-    content: &'a Content
+    pub segment: Segment,
+    pub content: &'a Content
+}
+
+impl<'a, Segment: SegmentCompare, Content> PassageContent<'a, Segment, Content> {
+    pub fn generalize(self) -> PassageContent<'a, PassageSegment, Content> {
+        PassageContent {
+            segment: self.segment.into(),
+            content: self.content,
+        }
+    }
 }
 
 // impl<T: SegmentCompare> PartialOrd for T {

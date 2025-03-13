@@ -5,7 +5,7 @@ use itertools::Itertools;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::compare::SegmentCompare;
+use crate::compare::{PassageContent, SegmentCompare};
 use crate::passage_segments::chapter_range::ChapterRange;
 use crate::passage_segments::chapter_verse::ChapterVerse;
 use crate::passage_segments::chapter_verse_range::ChapterVerseRange;
@@ -15,11 +15,11 @@ use crate::segment::PassageSegment;
 
 #[derive(Clone, Debug, Default)]
 pub struct GroupedContent<'a, Container: Debug + Default> {
-    pub chapter_verse: Vec<(ChapterVerse, &'a Container)>,
-    pub chapter_verse_range: Vec<(ChapterVerseRange, &'a Container)>,
-    pub chapter_range: Vec<(ChapterRange, &'a Container)>,
-    pub full_chapter: Vec<(FullChapter, &'a Container)>,
-    pub full_chapter_range: Vec<(FullChapterRange, &'a Container)>,
+    pub chapter_verse: Vec<PassageContent<'a, ChapterVerse, Container>>,
+    pub chapter_verse_range: Vec<PassageContent<'a, ChapterVerseRange, Container>>,
+    pub chapter_range: Vec<PassageContent<'a, ChapterRange, Container>>,
+    pub full_chapter: Vec<PassageContent<'a, FullChapter, Container>>,
+    pub full_chapter_range: Vec<PassageContent<'a, FullChapterRange, Container>>,
 }
 
 /// It requires default not because the data type must impl Default, but it's container should
@@ -84,98 +84,98 @@ impl<Container: Debug + Default> PassageOrganizer<Container> {
         }
     }
 
-    pub fn iter_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (PassageSegment, &'a Container)> {
-        self.iter_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container))
-            .chain(self.iter_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)))
-            .chain(self.iter_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
-            .chain(self.iter_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)))
-            .chain(self.iter_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)))
+    pub fn iter_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, PassageSegment, Container>> {
+        self.iter_chapter_verse_content(key).map(|psg| psg.generalize())
+            .chain(self.iter_chapter_verse_range_content(key).map(|psg| psg.generalize()))
+            .chain(self.iter_chapter_range_content(key).map(|psg| psg.generalize()))
+            .chain(self.iter_full_chapter_content(key).map(|psg| psg.generalize()))
+            .chain(self.iter_full_chapter_range_content(key).map(|psg| psg.generalize()))
     }
 
-    pub fn get_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(PassageSegment, &'a Container)> {
+    pub fn get_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, PassageSegment, Container>> {
         self.iter_all_content(key)
             .collect_vec()
     }
 
     pub fn get_all_content_grouped<'a>(&'a self, key: &'a impl SegmentCompare) -> GroupedContent<'a, Container> {
         GroupedContent {
-            chapter_verse: self.iter_chapter_verse_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            chapter_verse_range: self.iter_chapter_verse_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            chapter_range: self.iter_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            full_chapter: self.iter_full_chapter_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
-            full_chapter_range: self.iter_full_chapter_range_content(key).map(|(seg, container)| (seg.into(), container)).collect(),
+            chapter_verse: self.get_chapter_verse_content(key),
+            chapter_verse_range: self.get_chapter_verse_range_content(key),
+            chapter_range: self.get_chapter_range_content(key),
+            full_chapter: self.get_full_chapter_content(key),
+            full_chapter_range: self.get_full_chapter_range_content(key),
         }
     }
 }
 
 
 impl<Container: Debug + Default> PassageOrganizer<Container> {
-    pub fn get_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(ChapterVerse, &'a Container)> {
+    pub fn get_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, ChapterVerse, Container>> {
         self.iter_chapter_verse_content(key).collect_vec()
     }
 
-    pub fn iter_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerse, &'a Container)> {
+    pub fn iter_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, ChapterVerse, Container>> {
         self.chapter_verse.range(key.chapter_range()).flat_map(|(&chapter, map)| {
             map.range(key.verse_range(chapter))
-                .map(move|(&verse, container)| (ChapterVerse::new(chapter, verse), container))
+                .map(move|(&verse, container)| (ChapterVerse::new(chapter, verse).with_content(container)))
         })
     }
 
-    pub fn get_chapter_verse_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(ChapterVerseRange, &'a Container)> {
+    pub fn get_chapter_verse_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, ChapterVerseRange, Container>> {
         self.iter_chapter_verse_range_content(key).collect_vec()
     }
 
-    pub fn iter_chapter_verse_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterVerseRange, &'a Container)> {
+    pub fn iter_chapter_verse_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, ChapterVerseRange, Container>> {
         self.chapter_verse_range.range(key.chapter_range()).flat_map(move |(&chapter, verse_range_map)| {
             // I just do `iter` because I need to start from the beginning of a range because I dont know when it ends
             verse_range_map.iter().filter_map(move|(&(start_verse, end_verse), container)| {
                 let seg = ChapterVerseRange::new(chapter, start_verse, end_verse);
-                seg.overlaps_with(key).then(|| (seg, container))
+                seg.overlaps_with(key).then(|| seg.with_content(container))
             })
             // early terminate when the key ends before the start of this segment
-            .take_while(|(seg, _)| !key.ends_before(seg))
+            .take_while(|psg| !key.ends_before(&psg.segment))
         })
     }
 
-    pub fn get_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(ChapterRange, &'a Container)> {
+    pub fn get_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, ChapterRange, Container>> {
         self.iter_chapter_range_content(key).collect_vec()
     }
 
-    pub fn iter_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (ChapterRange, &'a Container)> {
+    pub fn iter_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, ChapterRange, Container>> {
          self.chapter_range.iter().flat_map(move|(&(start_chapter, end_chapter), verse_range_map)| {
             // I just do `iter` because I need to start from the beginning of a range because I dont know when it ends
             verse_range_map.iter().filter_map(move|(&(start_verse, end_verse), container)| {
                 let seg = ChapterRange::new(start_chapter, start_verse, end_chapter, end_verse);
-                seg.overlaps_with(key).then(|| (seg, container))
+                seg.overlaps_with(key).then(|| seg.with_content(container))
             })
             // early terminate when the key ends before the start of this segment
-            .take_while(|(seg, _)| !key.ends_before(seg))
+            .take_while(|psg| !key.ends_before(&psg.segment))
         })
         // early terminate when the key ends before the start of this segment
-        .take_while(|(seg, _)| !key.ends_before(seg))
+        .take_while(|psg| !key.ends_before(&psg.segment))
     }
 
-    pub fn get_full_chapter_content(&self, key: &impl SegmentCompare) -> Vec<(FullChapter, &Container)> {
+    pub fn get_full_chapter_content<'a>(&'a self, key: &impl SegmentCompare) -> Vec<PassageContent<'a, FullChapter, Container>> {
         self.iter_full_chapter_content(key).collect_vec()
     }
 
-    pub fn iter_full_chapter_content(&self, key: &impl SegmentCompare) -> impl Iterator<Item = (FullChapter, &Container)> {
+    pub fn iter_full_chapter_content<'a>(&'a self, key: &impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, FullChapter, Container>> {
         self.full_chapter.range(key.chapter_range())
-            .map(|(&chapter, container)| (FullChapter::new(chapter), container))
+            .map(|(&chapter, container)| (FullChapter::new(chapter).with_content(container)))
     }
 
-    pub fn get_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<(FullChapterRange, &'a Container)> {
+    pub fn get_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, FullChapterRange, Container>> {
         self.iter_full_chapter_range_content(key).collect_vec()
     }
 
-    pub fn iter_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = (FullChapterRange, &'a Container)> {
+    pub fn iter_full_chapter_range_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, FullChapterRange, Container>> {
         // I just do `iter` because I need to start from the beginning of a range because I dont know when it ends
         self.full_chapter_range.iter().filter_map(move |(&(start_chapter, end_chapter), container)| {
             let seg = FullChapterRange::new(start_chapter, end_chapter);
-            seg.overlaps_with(key).then(|| (seg, container))
+            seg.overlaps_with(key).then(|| seg.with_content(container))
         })
         // early terminate when the key ends before the start of this segment
-        .take_while(|(seg, _)| !key.ends_before(seg))
+        .take_while(|psg| !key.ends_before(&psg.segment))
     }
 
 }
