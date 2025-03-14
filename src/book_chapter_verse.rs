@@ -1,8 +1,17 @@
+use crate::{book_segment::BookSegment, passage_segments::chapter_verse::ChapterVerse};
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct BookChapterVerseId {
     book: u8,
     chapter: u8,
     verse: u8,
+}
+
+impl Into<BookSegment<ChapterVerse>> for BookChapterVerseId {
+    fn into(self) -> BookSegment<ChapterVerse> {
+        let BookChapterVerseId { book, chapter, verse } = self;
+        BookSegment::chapter_verse(book, chapter, verse)
+    }
 }
 
 pub const LAST_VERSE: u16 = 31_102;

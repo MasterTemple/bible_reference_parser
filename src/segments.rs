@@ -1,39 +1,47 @@
-use std::{fmt::Debug, ops::{Deref, DerefMut}};
+use std::{fmt::Debug, iter::Map, ops::{Deref, DerefMut}, slice::Iter, vec::IntoIter};
 
+use derive_more::IntoIterator;
 use serde::{Deserialize, Serialize};
 
 use crate::{book_segment::BookSegment, compare::SegmentCompare, segment::PassageSegment};
 
-/// todo: create method to iter segments as book segments
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BookPassageSegments {
     book: u8,
     segments: PassageSegments,
 }
 
-// impl IntoIterator for &BookPassageSegments {
-//     type Item;
-//
-//     type IntoIter;
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         todo!()
-//     }
-// }
+pub struct BookPassageSegmentsIter {
+    book: u8,
+    iter: <PassageSegments as IntoIterator>::IntoIter,
+}
 
-// impl Iterator for BookPassageSegments {
-//     type Item = BookSegment<PassageSegment>;
-//
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.iter()
-//     }
-// }
+impl Iterator for BookPassageSegmentsIter {
+    type Item = BookSegment<PassageSegment>;
 
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|seg| seg.with_book(self.book))
+    }
+}
+
+impl IntoIterator for BookPassageSegments {
+    type Item = BookSegment<PassageSegment>;
+
+    type IntoIter = BookPassageSegmentsIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        BookPassageSegmentsIter {
+            book: self.book,
+            iter: self.segments.into_iter(),
+        }
+    }
+}
 
 impl BookPassageSegments {
     pub fn iter(&self) -> impl Iterator<Item = BookSegment<PassageSegment>> + '_ {
         let book = self.book;
-        self.segments.iter().map(move |seg| seg.with_book(book))
+        let it = self.segments.iter().map(move |seg| seg.with_book(book));
+        it
     }
 
     pub fn parse(book: u8, segment_input: &str) -> Result<Self, String> {
@@ -50,6 +58,7 @@ impl BookPassageSegments {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(IntoIterator)]
 pub struct PassageSegments(pub Vec<PassageSegment>);
 
 impl Deref for PassageSegments {
@@ -97,7 +106,8 @@ mod tests {
     #[test]
     fn test() {
         let segs = BookPassageSegments::parse(1, "1:1,3-4").unwrap();
-        for seg in segs.iter() {
+        // segs.into_iter()
+        for seg in segs {
             println!("{seg:#?}");
         }
     }

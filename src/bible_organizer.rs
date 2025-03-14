@@ -29,7 +29,12 @@ impl<Container: Debug + Default> FullBibleOrganizer<Container> {
         Self(BTreeMap::new())
     }
 
-    pub fn modify<Segment: SegmentCompare>(&mut self, key: BookSegment<Segment>) -> &mut Container {
+    // pub fn modify<Segment: SegmentCompare>(&mut self, key: BookSegment<Segment>) -> &mut Container {
+    //     self.0.entry(key.book).or_default()
+    //         .modify(key.segment)
+    // }
+
+    pub fn modify(&mut self, key: BookSegment<ChapterVerse>) -> &mut Container {
         self.0.entry(key.book).or_default()
             .modify(key.segment)
     }
