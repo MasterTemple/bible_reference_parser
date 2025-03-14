@@ -56,6 +56,25 @@ impl<Container: Debug + Default> FullBibleOrganizer<Container> {
         self.iter_all_content(key).collect()
     }
 
+    pub fn get_all_content_grouped<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> BookGroupedContent<'a, Container> {
+        BookGroupedContent {
+            chapter_verse: self.get_chapter_verse_content(key),
+            chapter_verse_range: self.get_chapter_verse_range_content(key),
+            chapter_range: self.get_chapter_range_content(key),
+            full_chapter: self.get_full_chapter_content(key),
+            full_chapter_range: self.get_full_chapter_range_content(key),
+        }
+    }
+
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct BookGroupedContent<'a, Container: Debug + Default> {
+    pub chapter_verse: Vec<BookPassageContent<'a, ChapterVerse, Container>>,
+    pub chapter_verse_range: Vec<BookPassageContent<'a, ChapterVerseRange, Container>>,
+    pub chapter_range: Vec<BookPassageContent<'a, ChapterRange, Container>>,
+    pub full_chapter: Vec<BookPassageContent<'a, FullChapter, Container>>,
+    pub full_chapter_range: Vec<BookPassageContent<'a, FullChapterRange, Container>>,
 }
 
 impl<Container: Debug + Default> FullBibleOrganizer<Container> {
