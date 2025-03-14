@@ -44,14 +44,15 @@ impl<Content: Debug + Default> BibleVerseOrganizer<Content> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{compare::SegmentCompare, passage_segments::{chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange}};
+    use crate::{compare::SegmentCompare, passage_segments::{chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange}, segment::BookSegment};
 
     use super::BibleVerseOrganizer;
 
     #[test]
     fn test() {
         let mut bible = BibleVerseOrganizer::<String>::new();
-        *bible.modify(ChapterVerse::new(1, 1).with_book(1)) = String::from("In the beginning God created the heavens and the earth.");
+        // *bible.modify(ChapterVerse::new(1, 1).with_book(1)) = String::from("In the beginning God created the heavens and the earth.");
+        *bible.modify(BookSegment::chapter_verse(1, 1, 1)) = String::from("In the beginning God created the heavens and the earth.");
 
         *bible.modify(ChapterVerse::new(1, 1).with_book(43)) = String::from("In the beginning was the Word, and the Word was with God, and the Word was God.");
         *bible.modify(ChapterVerse::new(1, 2).with_book(43)) = String::from("He was in the beginning with God.");
