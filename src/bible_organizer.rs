@@ -1,6 +1,6 @@
 use itertools::Either;
 
-use crate::{compare::{BookPassageContent, PassageContent, SegmentCompare}, organizer::PassageOrganizer, passage_segments::chapter_verse::ChapterVerse, segment::BookSegment};
+use crate::{compare::{BookPassageContent, PassageContent, SegmentCompare}, organizer::PassageOrganizer, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::BookSegment};
 use std::{collections::BTreeMap, fmt::Debug, ops::{Deref, DerefMut}};
 
 #[derive(Debug, Default)]
@@ -53,6 +53,34 @@ impl<Container: Debug + Default> FullBibleOrganizer<Container> {
     }
     pub fn get_chapter_verse_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> Vec<BookPassageContent<'a, ChapterVerse, Container>> {
         self.iter_chapter_verse_content(key).collect()
+    }
+
+    pub fn iter_chapter_verse_range_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> impl Iterator<Item = BookPassageContent<'a, ChapterVerseRange, Container>> {
+        self.iter_book(key, |org, seg| org.iter_chapter_verse_range_content(seg))
+    }
+    pub fn get_chapter_verse_range_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> Vec<BookPassageContent<'a, ChapterVerseRange, Container>> {
+        self.iter_chapter_verse_range_content(key).collect()
+    }
+
+    pub fn iter_chapter_range_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> impl Iterator<Item = BookPassageContent<'a, ChapterRange, Container>> {
+        self.iter_book(key, |org, seg| org.iter_chapter_range_content(seg))
+    }
+    pub fn get_chapter_range_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> Vec<BookPassageContent<'a, ChapterRange, Container>> {
+        self.iter_chapter_range_content(key).collect()
+    }
+
+    pub fn iter_full_chapter_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> impl Iterator<Item = BookPassageContent<'a, FullChapter, Container>> {
+        self.iter_book(key, |org, seg| org.iter_full_chapter_content(seg))
+    }
+    pub fn get_full_chapter_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> Vec<BookPassageContent<'a, FullChapter, Container>> {
+        self.iter_full_chapter_content(key).collect()
+    }
+
+    pub fn iter_full_chapter_range_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> impl Iterator<Item = BookPassageContent<'a, FullChapterRange, Container>> {
+        self.iter_book(key, |org, seg| org.iter_full_chapter_range_content(seg))
+    }
+    pub fn get_full_chapter_range_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> Vec<BookPassageContent<'a, FullChapterRange, Container>> {
+        self.iter_full_chapter_range_content(key).collect()
     }
 
 }
