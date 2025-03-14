@@ -117,8 +117,31 @@ impl<Container: Debug + Default> FullBibleOrganizer<Container> {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test() {
+    use crate::{compare::SegmentCompare, parse::ParsableSegment, passage_segments::chapter_verse::ChapterVerse};
 
+    use super::FullBibleOrganizer;
+
+    #[test]
+    fn test() -> Result<(), String> {
+        let mut bible = FullBibleOrganizer::<String>::new();
+        *bible.modify(ChapterVerse::parse("1:1")?.with_book(43)) =
+            String::from("In the beginning was the Word, and the Word was with God, and the Word was God.");
+        *bible.modify(ChapterVerse::parse("1:2")?.with_book(43)) =
+            String::from("He was in the beginning with God.");
+        *bible.modify(ChapterVerse::parse("1:3")?.with_book(43)) =
+            String::from("All things were made through him, and without him was not any thing made that was made.");
+
+        println!("{:#?}", bible.get_chapter_verse_content(&ChapterVerse::parse("1:1")?.with_book(43)));
+        /*
+        [
+            BookPassageContent {
+                book: 43,
+                segment: ChapterVerse { chapter: 1, verse: 1, },
+                content: "In the beginning was the Word, and the Word was with God, and the Word was God.",
+            },
+        ]
+        */
+
+        Ok(())
     }
 }

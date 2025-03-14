@@ -9,25 +9,6 @@ pub struct BookSegment<Segment: SegmentCompare> {
     pub segment: Segment,
 }
 
-// impl<Segment: SegmentCompare> SegmentCompare for BookSegment<Segment> {
-//     fn starting_chapter(&self) -> u8 {
-//         self.segment.starting_chapter()
-//     }
-//
-//     fn starting_verse(&self) -> u8 {
-//         self.segment.starting_verse()
-//     }
-//
-//     fn ending_chapter(&self) -> u8 {
-//         self.segment.ending_chapter()
-//     }
-//
-//     fn ending_verse(&self) -> Option<u8> {
-//         self.segment.ending_verse()
-//     }
-//
-// }
-
 impl<Segment: SegmentCompare> BookSegment<Segment> {
     pub fn generalize(self) -> BookSegment<PassageSegment> {
         BookSegment {
@@ -36,17 +17,6 @@ impl<Segment: SegmentCompare> BookSegment<Segment> {
         }
     }
 }
-
-// impl<Segment: SegmentCompare> PartialOrd for BookPassageSegment<Segment> {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         Some(
-//             self.book.cmp(&other.book)
-//             // .then(self.segment.cmp(&other.segment))
-//             // .then(self.segment.cmp(&other.segment))
-//         )
-//     }
-// }
-
 
 /// Remember, these correspond to
 /// ```text
