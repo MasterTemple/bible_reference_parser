@@ -36,15 +36,15 @@ impl<Content: Debug + Default> BibleBookOrganizer<Content> {
             .entry(seg.verse).or_default()
     }
 
-    pub fn get_chapter_verse_content<'a>(&'a self, chapter: u8, verse: u8) -> Option<&'a Content> {
-        self.chapter_verse.get(&chapter)?.get(&verse)
-    }
+    // pub fn get_chapter_verse_content<'a>(&'a self, chapter: u8, verse: u8) -> Option<&'a Content> {
+    //     self.chapter_verse.get(&chapter)?.get(&verse)
+    // }
 
     pub fn get_segment_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, ChapterVerse, Content>>  {
-        self.iter_chapter_verse_content(key).collect_vec()
+        self.iter_segment_content(key).collect_vec()
     }
 
-    pub fn iter_chapter_verse_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, ChapterVerse, Content>> {
+    pub fn iter_segment_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, ChapterVerse, Content>> {
         self.chapter_verse.range(key.chapter_range()).flat_map(|(&chapter, map)| {
             map.range(key.verse_range(chapter))
                 .map(move|(&verse, content)| ChapterVerse::new(chapter, verse).with_content(content))

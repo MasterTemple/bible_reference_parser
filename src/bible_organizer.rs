@@ -3,6 +3,8 @@ use itertools::Either;
 use crate::{compare::{BookPassageContent, PassageContent, SegmentCompare}, organizer::PassageOrganizer, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::{BookSegment, PassageSegment}};
 use std::{collections::BTreeMap, fmt::Debug, ops::{Deref, DerefMut}};
 
+/// This is meant to organize content across the entire Bible
+/// For something to store only verse content instead of all related data, see [`BibleVerseOrganizer`](bible_reference_parser::bible_verse_organizer::BibleVerseOrganizer)
 #[derive(Debug, Default)]
 pub struct FullBibleOrganizer<Container: Debug + Default>(
     BTreeMap<u8, PassageOrganizer<Container>>,
