@@ -16,7 +16,7 @@ fn main() -> Result<(), String> {
         String::from("All things were made through him, and without him was not any thing made that was made.");
     
     // but any kind of passage can access the content
-    println!("{:#?}", john.get_chapter_verse_content(&psg("1:1")));
+    println!("{:#?}", john.get_segment_content(&psg("1:1")));
     /* [
         (
             ChapterVerse { chapter: 1, verse: 1 },
@@ -25,7 +25,7 @@ fn main() -> Result<(), String> {
     ] */
 
     // even across ranges
-    println!("{:#?}", john.get_chapter_verse_content(&psg("1:1-3")));
+    println!("{:#?}", john.get_segment_content(&psg("1:1-3")));
     /* [
         (
             ChapterVerse { chapter: 1, verse: 1 },

@@ -1,7 +1,9 @@
 use std::ops::Bound;
 use std::fmt::Debug;
 
-use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+
+use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::{BookSegment, PassageSegment}};
 
 pub trait SegmentCompare: Copy + Sized + Debug +  Into<PassageSegment> {
     fn starting_verse(&self) -> u8;
@@ -98,6 +100,13 @@ pub trait SegmentCompare: Copy + Sized + Debug +  Into<PassageSegment> {
             content
         }
     }
+
+    fn with_book(&self, book: u8) -> BookSegment<Self> {
+        BookSegment {
+            book,
+            segment: *self,
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -113,7 +122,22 @@ impl<'a, Segment: SegmentCompare, Content> PassageContent<'a, Segment, Content> 
             content: self.content,
         }
     }
+    pub fn with_book(self, book: u8) -> BookPassageContent<'a, Segment, Content> {
+        BookPassageContent {
+            book,
+            segment: self.segment,
+            content: self.content
+        }
+    }
 }
+
+#[derive(Copy, Clone, Debug)]
+pub struct BookPassageContent<'a, Segment: SegmentCompare, Content> {
+    pub book: u8,
+    pub segment: Segment,
+    pub content: &'a Content
+}
+
 
 // impl<T: SegmentCompare> PartialOrd for T {
 //     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {

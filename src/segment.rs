@@ -3,6 +3,51 @@ use std::fmt::{Debug, Display};
 
 use crate::{compare::SegmentCompare, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}};
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BookSegment<Segment: SegmentCompare> {
+    pub book: u8,
+    pub segment: Segment,
+}
+
+// impl<Segment: SegmentCompare> SegmentCompare for BookSegment<Segment> {
+//     fn starting_chapter(&self) -> u8 {
+//         self.segment.starting_chapter()
+//     }
+//
+//     fn starting_verse(&self) -> u8 {
+//         self.segment.starting_verse()
+//     }
+//
+//     fn ending_chapter(&self) -> u8 {
+//         self.segment.ending_chapter()
+//     }
+//
+//     fn ending_verse(&self) -> Option<u8> {
+//         self.segment.ending_verse()
+//     }
+//
+// }
+
+impl<Segment: SegmentCompare> BookSegment<Segment> {
+    pub fn generalize(self) -> BookSegment<PassageSegment> {
+        BookSegment {
+            book: self.book,
+            segment: self.segment.into(),
+        }
+    }
+}
+
+// impl<Segment: SegmentCompare> PartialOrd for BookPassageSegment<Segment> {
+//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+//         Some(
+//             self.book.cmp(&other.book)
+//             // .then(self.segment.cmp(&other.segment))
+//             // .then(self.segment.cmp(&other.segment))
+//         )
+//     }
+// }
+
+
 /// Remember, these correspond to
 /// ```text
 ///                   `John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8`
