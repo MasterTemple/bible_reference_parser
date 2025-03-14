@@ -1,6 +1,6 @@
 use itertools::Either;
 
-use crate::{bible::BibleBookOrganizer, compare::{BookPassageContent, PassageContent, SegmentCompare}, passage_segments::chapter_verse::ChapterVerse, segment::BookSegment};
+use crate::{bible::BibleBookOrganizer, compare::{BookPassageContent, PassageContent, SegmentCompare}, passage_segments::chapter_verse::ChapterVerse, book_segment::BookSegment};
 use std::{collections::BTreeMap, fmt::Debug};
 
 #[derive(Debug, Default)]
@@ -44,7 +44,7 @@ impl<Content: Debug + Default> BibleVerseOrganizer<Content> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{compare::SegmentCompare, passage_segments::{chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange}, segment::BookSegment};
+    use crate::{compare::SegmentCompare, passage_segments::{chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange}, book_segment::BookSegment};
 
     use super::BibleVerseOrganizer;
 

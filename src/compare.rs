@@ -1,7 +1,7 @@
 use std::ops::Bound;
 use std::fmt::Debug;
 
-use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::{BookSegment, PassageSegment}};
+use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment, book_segment::BookSegment};
 
 pub trait SegmentCompare: Copy + Sized + Debug +  Into<PassageSegment> {
     fn starting_verse(&self) -> u8;

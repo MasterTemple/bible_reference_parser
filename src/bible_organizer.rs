@@ -1,6 +1,6 @@
 use itertools::Either;
 
-use crate::{compare::{BookPassageContent, PassageContent, SegmentCompare}, organizer::PassageOrganizer, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::{BookSegment, PassageSegment}};
+use crate::{compare::{BookPassageContent, PassageContent, SegmentCompare}, organizer::PassageOrganizer, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::PassageSegment, book_segment::BookSegment};
 use std::{collections::BTreeMap, fmt::Debug, ops::{Deref, DerefMut}};
 
 /// This is meant to organize content across the entire Bible
