@@ -2,8 +2,6 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 
 use itertools::Itertools;
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
 
 use crate::compare::{PassageContent, SegmentCompare};
 use crate::passage_segments::chapter_range::ChapterRange;

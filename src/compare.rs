@@ -1,8 +1,6 @@
 use std::ops::Bound;
 use std::fmt::Debug;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-
 use crate::{passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::{BookSegment, PassageSegment}};
 
 pub trait SegmentCompare: Copy + Sized + Debug +  Into<PassageSegment> {
@@ -136,6 +134,16 @@ pub struct BookPassageContent<'a, Segment: SegmentCompare, Content> {
     pub book: u8,
     pub segment: Segment,
     pub content: &'a Content
+}
+
+impl<'a, Segment: SegmentCompare, Content> BookPassageContent<'a, Segment, Content> {
+    pub fn generalize(self) -> BookPassageContent<'a, PassageSegment, Content> {
+        BookPassageContent {
+            book: self.book,
+            segment: self.segment.into(),
+            content: self.content,
+        }
+    }
 }
 
 

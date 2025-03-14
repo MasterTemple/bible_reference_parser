@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
-use bible_reference_parser::{compare::SegmentCompare, organizer::PassageOrganizer, parse::ParsableSegment, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter}, segment::PassageSegment, segments::PassageSegments};
-use itertools::Itertools;
+use bible_reference_parser::{organizer::PassageOrganizer, segment::PassageSegment, segments::PassageSegments};
 use serde::Serialize;
 
 // put literally anything here

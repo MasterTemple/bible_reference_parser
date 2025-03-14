@@ -1,6 +1,6 @@
 use itertools::Either;
 
-use crate::{compare::{BookPassageContent, PassageContent, SegmentCompare}, organizer::PassageOrganizer, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::BookSegment};
+use crate::{compare::{BookPassageContent, PassageContent, SegmentCompare}, organizer::PassageOrganizer, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}, segment::{BookSegment, PassageSegment}};
 use std::{collections::BTreeMap, fmt::Debug, ops::{Deref, DerefMut}};
 
 #[derive(Debug, Default)]
@@ -45,9 +45,20 @@ impl<Container: Debug + Default> FullBibleOrganizer<Container> {
         }
     }
 
-    // pub fn iter_all_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = BookPassageContent<'a, PassageSegment, Container>> {
-    // }
+    pub fn iter_all_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> impl Iterator<Item = BookPassageContent<'a, PassageSegment, Container>> {
+        self.iter_chapter_verse_content(key).map(|psg| psg.generalize())
+            .chain(self.iter_chapter_verse_range_content(key).map(|psg| psg.generalize()))
+            .chain(self.iter_chapter_range_content(key).map(|psg| psg.generalize()))
+            .chain(self.iter_full_chapter_content(key).map(|psg| psg.generalize()))
+            .chain(self.iter_full_chapter_range_content(key).map(|psg| psg.generalize()))
+    }
+    pub fn get_all_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> Vec<BookPassageContent<'a, PassageSegment, Container>> {
+        self.iter_all_content(key).collect()
+    }
 
+}
+
+impl<Container: Debug + Default> FullBibleOrganizer<Container> {
     pub fn iter_chapter_verse_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> impl Iterator<Item = BookPassageContent<'a, ChapterVerse, Container>> {
         self.iter_book(key, |org, seg| org.iter_chapter_verse_content(seg))
     }
