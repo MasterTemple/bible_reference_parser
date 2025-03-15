@@ -1,28 +1,35 @@
+use std::ops::{Bound, RangeBounds};
+
+use derive_more::{Deref, DerefMut, From};
 use itertools::Itertools;
 
-use crate::{book_segment::BookSegment, passage_segments::chapter_verse::ChapterVerse};
+use crate::{book_segment::BookSegment, passage_segments::{chapter_range::ChapterRange, chapter_verse::ChapterVerse}};
+
+// #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+// pub struct BookChapterVerse {
+//     book: u8,
+//     chapter: u8,
+//     verse: u8,
+// }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct BookChapterVerseId {
-    book: u8,
-    chapter: u8,
-    verse: u8,
-}
+#[derive(From, Deref, DerefMut)]
+pub struct BookChapterVerse(BookSegment<ChapterVerse>);
 
 // should this be TryInto?
-impl Into<BookChapterVerseId> for BookSegment<ChapterVerse> {
-    fn into(self) -> BookChapterVerseId {
-        let BookSegment { book, segment: ChapterVerse { chapter, verse } } = self;
-        BookChapterVerseId{ book, chapter, verse }
-    }
-}
-
-impl Into<BookSegment<ChapterVerse>> for BookChapterVerseId {
-    fn into(self) -> BookSegment<ChapterVerse> {
-        let BookChapterVerseId { book, chapter, verse } = self;
-        BookSegment::chapter_verse(book, chapter, verse)
-    }
-}
+// impl Into<BookChapterVerse> for BookSegment<ChapterVerse> {
+//     fn into(self) -> BookChapterVerse {
+//         let BookSegment { book, segment: ChapterVerse { chapter, verse } } = self;
+//         BookChapterVerse{ book, chapter, verse }
+//     }
+// }
+//
+// impl Into<BookSegment<ChapterVerse>> for BookChapterVerse {
+//     fn into(self) -> BookSegment<ChapterVerse> {
+//         let BookChapterVerse { book, chapter, verse } = self;
+//         BookSegment::chapter_verse(book, chapter, verse)
+//     }
+// }
 
 pub const LAST_VERSE: u16 = 31_102;
 
@@ -178,10 +185,15 @@ pub const VERSE_COUNT_PAIRS: &[(u16, &[u16])] = &[
   (30698, &[20, 29, 22, 11, 14, 17, 17, 13, 21, 11, 19, 17, 18, 20, 8, 21, 18, 24, 21, 15, 27, 21])
 ];
 
-impl BookChapterVerseId {
+impl BookChapterVerse {
+
+    fn book_idx(&self) -> usize { (self.book - 1) as usize }
+    fn chapter_idx(&self) -> usize { (self.segment.chapter - 1) as usize }
+    // fn verse_idx(&self) -> usize { (self.segment.verse - 1) as usize }
+
     pub fn book(&self) -> u8 { self.book }
-    pub fn chapter(&self) -> u8 { self.chapter }
-    pub fn verse(&self) -> u8 { self.verse }
+    pub fn chapter(&self) -> u8 { self.segment.chapter }
+    pub fn verse(&self) -> u8 { self.segment.verse }
 
     /// - This method validates the book/chapter/verse numbers
     pub fn new(book: u8, chapter: u8, verse: u8) -> Result<Self, String> {
@@ -197,11 +209,7 @@ impl BookChapterVerseId {
         let chapter_verse_count = pair.1.get((chapter - 1) as usize).ok_or_else(chapter_err)?;
         if verse > (*chapter_verse_count as u8) { Err(verse_err())? }
 
-        Ok(Self {
-            book,
-            chapter,
-            verse,
-        })
+        Ok(Self(BookSegment::chapter_verse(book, chapter, verse)))
     }
 
     /// - This method validates the book/chapter/verse numbers
@@ -242,7 +250,7 @@ impl BookChapterVerseId {
         // Genesis is book 1 not 0
         let book = (book + 1) as u8;
 
-        BookChapterVerseId::new(book, chapter, verse)
+        BookChapterVerse::new(book, chapter, verse)
         // Ok(BookChapterVerseId { book, chapter, verse })
     }
 
@@ -250,13 +258,13 @@ impl BookChapterVerseId {
     pub fn as_verse(&self) -> u16 {
         let book = VERSE_COUNT_PAIRS[(self.book - 1) as usize];
         let verses_before_book = book.0;
-        let verses_before_chapter: u16 = book.1.iter().take((self.chapter - 1) as usize).sum();
-        let verses_before_verse = self.verse as u16;
+        let verses_before_chapter: u16 = book.1.iter().take((self.chapter() - 1) as usize).sum();
+        let verses_before_verse = self.verse() as u16;
         verses_before_book + verses_before_chapter + verses_before_verse
     }
 
     /// - This method indirectly validates the book/chapter/verse numbers
-    pub fn from_id_str(input: &str) -> Result<BookChapterVerseId, String> {
+    pub fn from_id_string(input: &str) -> Result<BookChapterVerse, String> {
         if input.len() != 8 { return Err(format!("Expected length of 8: 2 digits for the book, 3 digits for the chapter, and 3 digits for the verse")); }
         let book = &input[0..=1];
         let book = book.parse().map_err(|_| format!("Could not parse book from '{}'", book))?;
@@ -264,58 +272,74 @@ impl BookChapterVerseId {
         let chapter = chapter.parse().map_err(|_| format!("Could not parse chapter from '{}'", chapter))?;
         let verse = &input[5..=7];
         let verse = verse.parse().map_err(|_| format!("Could not parse verse from '{}'", verse))?;
-        BookChapterVerseId::new(book, chapter, verse)
+        BookChapterVerse::new(book, chapter, verse)
     }
 
     pub fn as_id_string(&self) -> String {
         format!(
             "{:0>2}{:0>3}{:0>3}",
             self.book,
-            self.chapter,
-            self.verse,
+            self.chapter(),
+            self.verse(),
         )
     }
 
     pub fn remaining_verses(&self) -> Option<std::ops::RangeInclusive<u8>>  {
-        let chapter_verses = VERSE_COUNT_PAIRS.get((self.book - 1) as usize)?.1;
-        let verse_count = chapter_verses.get((self.chapter - 1) as usize)?;
-        let start = self.verse + 1;
+        let chapter_verses = BOOK_CHAPTER_VERSE_COUNT.get(self.book_idx())?;
+        let verse_count = chapter_verses.get(self.chapter_idx())?;
+        let start = self.verse() + 1;
         let end = *verse_count as u8;
         (start <= end).then(|| start..=end)
     }
 
+    pub fn iter_remaining_verses(&self) -> impl Iterator<Item = u8>  {
+        match self.remaining_verses() {
+            Some(range) => range.skip(0),
+            None => (0..=0).skip(1),
+        }
+    }
+
     pub fn remaining_chapters(&self) -> Option<std::ops::RangeInclusive<u8>> {
-        let chapter_count = VERSE_COUNT_PAIRS.get((self.book - 1) as usize)?.1.len();
-        let start = self.chapter + 1;
+        let chapter_count = BOOK_CHAPTER_VERSE_COUNT.get(self.book_idx())?.len();
+        let start = self.chapter() + 1;
         let end = chapter_count as u8;
         (start <= end).then(|| start..=end)
+    }
+
+    pub fn iter_remaining_chapters(&self) -> impl Iterator<Item = u8>  {
+        match self.remaining_chapters() {
+            Some(range) => range.skip(0),
+            None => (0..=0).skip(1),
+        }
     }
 }
 
 #[cfg(test)]
 mod book_chapter_verse_tests {
+    use std::collections::BTreeMap;
+
     use itertools::Itertools;
 
-    use super::BookChapterVerseId;
+    use super::BookChapterVerse;
 
     #[test]
     fn new() -> Result<(), String> {
-        assert!(BookChapterVerseId::new(0, 1, 1).is_err());
-        assert!(BookChapterVerseId::new(1, 0, 1).is_err());
-        assert!(BookChapterVerseId::new(1, 1, 0).is_err());
-        assert!(BookChapterVerseId::new(1, 1, 1).is_ok());
-        assert!(BookChapterVerseId::new(1, 1, 31).is_ok());
-        assert!(BookChapterVerseId::new(1, 1, 32).is_err());
-        assert!(BookChapterVerseId::new(1, 2, 1).is_ok());
-        assert!(BookChapterVerseId::new(1, 2, 25).is_ok());
-        assert!(BookChapterVerseId::new(1, 2, 26).is_err());
-        assert!(BookChapterVerseId::new(1, 50, 26).is_ok());
-        assert!(BookChapterVerseId::new(1, 50, 27).is_err());
-        assert!(BookChapterVerseId::new(1, 51, 1).is_err());
-        assert!(BookChapterVerseId::new(2, 1, 1).is_ok());
-        assert!(BookChapterVerseId::new(2, 1, 22).is_ok());
-        assert!(BookChapterVerseId::new(2, 1, 23).is_err());
-        assert!(BookChapterVerseId::new(67, 1, 1).is_err());
+        assert!(BookChapterVerse::new(0, 1, 1).is_err());
+        assert!(BookChapterVerse::new(1, 0, 1).is_err());
+        assert!(BookChapterVerse::new(1, 1, 0).is_err());
+        assert!(BookChapterVerse::new(1, 1, 1).is_ok());
+        assert!(BookChapterVerse::new(1, 1, 31).is_ok());
+        assert!(BookChapterVerse::new(1, 1, 32).is_err());
+        assert!(BookChapterVerse::new(1, 2, 1).is_ok());
+        assert!(BookChapterVerse::new(1, 2, 25).is_ok());
+        assert!(BookChapterVerse::new(1, 2, 26).is_err());
+        assert!(BookChapterVerse::new(1, 50, 26).is_ok());
+        assert!(BookChapterVerse::new(1, 50, 27).is_err());
+        assert!(BookChapterVerse::new(1, 51, 1).is_err());
+        assert!(BookChapterVerse::new(2, 1, 1).is_ok());
+        assert!(BookChapterVerse::new(2, 1, 22).is_ok());
+        assert!(BookChapterVerse::new(2, 1, 23).is_err());
+        assert!(BookChapterVerse::new(67, 1, 1).is_err());
 
         Ok(())
     }
@@ -323,28 +347,28 @@ mod book_chapter_verse_tests {
     #[test]
     fn from_verse() -> Result<(), String> {
         assert_eq!(
-            BookChapterVerseId::from_verse(1)?,
-            BookChapterVerseId::new(1, 1, 1)?
+            BookChapterVerse::from_verse(1)?,
+            BookChapterVerse::new(1, 1, 1)?
         );
 
         assert_eq!(
-            BookChapterVerseId::from_verse(2)?,
-            BookChapterVerseId::new(1, 1, 2)?
+            BookChapterVerse::from_verse(2)?,
+            BookChapterVerse::new(1, 1, 2)?
         );
 
         assert_eq!(
-            BookChapterVerseId::from_verse(23146)?,
-            BookChapterVerseId::new(40, 1, 1)?
+            BookChapterVerse::from_verse(23146)?,
+            BookChapterVerse::new(40, 1, 1)?
         );
 
         assert_eq!(
-            BookChapterVerseId::from_verse(23170)?,
-            BookChapterVerseId::new(40, 1, 25)?
+            BookChapterVerse::from_verse(23170)?,
+            BookChapterVerse::new(40, 1, 25)?
         );
 
         assert_eq!(
-            BookChapterVerseId::from_verse(23171)?,
-            BookChapterVerseId::new(40, 2, 1)?
+            BookChapterVerse::from_verse(23171)?,
+            BookChapterVerse::new(40, 2, 1)?
         );
 
         Ok(())
@@ -353,27 +377,27 @@ mod book_chapter_verse_tests {
     #[test]
     fn as_verse() -> Result<(), String> {
         assert_eq!(
-            BookChapterVerseId::new(1, 1, 1)?.as_verse(),
+            BookChapterVerse::new(1, 1, 1)?.as_verse(),
             1,
         );
 
         assert_eq!(
-            BookChapterVerseId::new(1, 1, 2)?.as_verse(),
+            BookChapterVerse::new(1, 1, 2)?.as_verse(),
             2,
         );
 
         assert_eq!(
-            BookChapterVerseId::new(40, 1, 1)?.as_verse(),
+            BookChapterVerse::new(40, 1, 1)?.as_verse(),
             23146,
         );
 
         assert_eq!(
-            BookChapterVerseId::new(40, 1, 25)?.as_verse(),
+            BookChapterVerse::new(40, 1, 25)?.as_verse(),
             23170,
         );
 
         assert_eq!(
-            BookChapterVerseId::new(40, 2, 1)?.as_verse(),
+            BookChapterVerse::new(40, 2, 1)?.as_verse(),
             23171,
         );
 
@@ -383,13 +407,13 @@ mod book_chapter_verse_tests {
     #[test]
     fn from_id_str() -> Result<(), String> {
         assert_eq!(
-            BookChapterVerseId::from_id_str("01001001")?,
-            BookChapterVerseId::new(1, 1, 1)?
+            BookChapterVerse::from_id_string("01001001")?,
+            BookChapterVerse::new(1, 1, 1)?
         );
 
         assert_eq!(
-            BookChapterVerseId::from_id_str("43011035")?,
-            BookChapterVerseId::new(43, 11, 35)?
+            BookChapterVerse::from_id_string("43011035")?,
+            BookChapterVerse::new(43, 11, 35)?
         );
 
         Ok(())
@@ -398,12 +422,12 @@ mod book_chapter_verse_tests {
     #[test]
     fn as_id_str() -> Result<(), String> {
         assert_eq!(
-            BookChapterVerseId::new(1, 1, 1 )?.as_id_string(),
+            BookChapterVerse::new(1, 1, 1 )?.as_id_string(),
             String::from("01001001")
         );
 
         assert_eq!(
-            BookChapterVerseId::new(43, 11, 35)?.as_id_string(),
+            BookChapterVerse::new(43, 11, 35)?.as_id_string(),
             String::from("43011035")
         );
 
@@ -413,18 +437,38 @@ mod book_chapter_verse_tests {
     #[test]
     fn remaining_verses() -> Result<(), String> {
         assert_eq!(
-            BookChapterVerseId::new(1, 1, 1)?.remaining_verses(),
+            BookChapterVerse::new(1, 1, 1)?.remaining_verses(),
             Some(2..=31)
         );
 
         assert_eq!(
-            BookChapterVerseId::new(1, 1, 30)?.remaining_verses(),
+            BookChapterVerse::new(1, 1, 30)?.remaining_verses(),
             Some(31..=31)
         );
 
         assert_eq!(
-            BookChapterVerseId::new(1, 1, 31)?.remaining_verses(),
+            BookChapterVerse::new(1, 1, 31)?.remaining_verses(),
             None
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn iter_remaining_verses() -> Result<(), String> {
+        assert_eq!(
+            BookChapterVerse::new(1, 1, 1)?.iter_remaining_verses().collect_vec(),
+            (2..=31).collect_vec()
+        );
+
+        assert_eq!(
+            BookChapterVerse::new(1, 1, 30)?.iter_remaining_verses().collect_vec(),
+            (31..=31).collect_vec()
+        );
+
+        assert_eq!(
+            BookChapterVerse::new(1, 1, 31)?.iter_remaining_verses().collect_vec(),
+            Vec::<u8>::new()
         );
 
         Ok(())
@@ -433,18 +477,38 @@ mod book_chapter_verse_tests {
     #[test]
     fn remaining_chapters() -> Result<(), String> {
         assert_eq!(
-            BookChapterVerseId::new(1, 1, 1)?.remaining_chapters(),
+            BookChapterVerse::new(1, 1, 1)?.remaining_chapters(),
             Some(2..=50)
         );
 
         assert_eq!(
-            BookChapterVerseId::new(1, 49, 1)?.remaining_chapters(),
+            BookChapterVerse::new(1, 49, 1)?.remaining_chapters(),
             Some(50..=50)
         );
 
         assert_eq!(
-            BookChapterVerseId::new(1, 50, 1)?.remaining_chapters(),
+            BookChapterVerse::new(1, 50, 1)?.remaining_chapters(),
             None
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn iter_remaining_chapters() -> Result<(), String> {
+        assert_eq!(
+            BookChapterVerse::new(1, 1, 1)?.iter_remaining_chapters().collect_vec(),
+            (2..=50).collect_vec()
+        );
+
+        assert_eq!(
+            BookChapterVerse::new(1, 49, 1)?.iter_remaining_chapters().collect_vec(),
+            (50..=50).collect_vec()
+        );
+
+        assert_eq!(
+            BookChapterVerse::new(1, 50, 1)?.iter_remaining_chapters().collect_vec(),
+            Vec::<u8>::new()
         );
 
         Ok(())
