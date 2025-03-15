@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::{book_segment::BookSegment, passage_segments::chapter_verse::ChapterVerse};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -5,6 +7,14 @@ pub struct BookChapterVerseId {
     book: u8,
     chapter: u8,
     verse: u8,
+}
+
+// should this be TryInto?
+impl Into<BookChapterVerseId> for BookSegment<ChapterVerse> {
+    fn into(self) -> BookChapterVerseId {
+        let BookSegment { book, segment: ChapterVerse { chapter, verse } } = self;
+        BookChapterVerseId{ book, chapter, verse }
+    }
 }
 
 impl Into<BookSegment<ChapterVerse>> for BookChapterVerseId {
@@ -188,10 +198,27 @@ impl BookChapterVerseId {
             self.verse,
         )
     }
+
+    pub fn remaining_verses(&self) -> Option<std::ops::RangeInclusive<u8>>  {
+        let chapter_verses = VERSE_COUNT_PAIRS.get((self.book - 1) as usize)?.2;
+        let verse_count = chapter_verses.get((self.chapter - 1) as usize)?;
+        let start = self.verse + 1;
+        let end = *verse_count as u8;
+        (start <= end).then(|| start..=end)
+    }
+
+    pub fn remaining_chapters(&self) -> Option<std::ops::RangeInclusive<u8>> {
+        let chapter_count = VERSE_COUNT_PAIRS.get((self.book - 1) as usize)?.2.len();
+        let start = self.chapter + 1;
+        let end = chapter_count as u8;
+        (start <= end).then(|| start..=end)
+    }
 }
 
 #[cfg(test)]
 mod book_chapter_verse_tests {
+    use itertools::Itertools;
+
     use super::BookChapterVerseId;
 
     #[test]
@@ -301,6 +328,46 @@ mod book_chapter_verse_tests {
         assert_eq!(
             BookChapterVerseId::new(43, 11, 35)?.as_id_string(),
             String::from("43011035")
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn remaining_verses() -> Result<(), String> {
+        assert_eq!(
+            BookChapterVerseId::new(1, 1, 1)?.remaining_verses(),
+            Some(2..=31)
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(1, 1, 30)?.remaining_verses(),
+            Some(31..=31)
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(1, 1, 31)?.remaining_verses(),
+            None
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn remaining_chapters() -> Result<(), String> {
+        assert_eq!(
+            BookChapterVerseId::new(1, 1, 1)?.remaining_chapters(),
+            Some(2..=50)
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(1, 49, 1)?.remaining_chapters(),
+            Some(50..=50)
+        );
+
+        assert_eq!(
+            BookChapterVerseId::new(1, 50, 1)?.remaining_chapters(),
+            None
         );
 
         Ok(())
