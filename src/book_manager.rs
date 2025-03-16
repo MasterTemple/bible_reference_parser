@@ -89,6 +89,21 @@ impl Default for BookWithAbbreviationsList {
 impl Default for BookManager {
     fn default() -> Self {
         let data = BookWithAbbreviationsList::default();
+        Self::new(data).expect("The default provided data data should always compile")
+    }
+}
+
+// #[derive(Clone, Debug)]
+// pub struct BookInfo<'a> {
+//     id: u8,
+//     name: &'a str,
+//     abbr: &'a str,
+// }
+
+impl<'a> BookManager {
+    /// - You only want to use this when you have custom data
+    /// - If you would like English book names, please just use [`Default::default()`]
+    pub fn new(data: BookWithAbbreviationsList) -> Result<Self, String> {
         let mut abbreviations_to_book_id = BTreeMap::new();
         let mut book_id_to_name = BTreeMap::new();
         let mut book_id_to_abbreviation = BTreeMap::new();
@@ -106,25 +121,16 @@ impl Default for BookManager {
         let books_pattern: String = abbreviations_to_book_id.keys().join("|");
         // I added the period so that people can use it in abbreviations
         let book_regex = Regex::new(format!(r"\b(((?:)(?i){books_pattern})[A-z]*)\.?").as_str())
-            .expect("Failed to compile book_regex because of bad user input.");
+            .map_err(|e| format!("Failed to compile book_regex because of bad user input.\n{e}"))?;
 
-        BookManager {
+        Ok(BookManager {
             book_regex,
             abbreviations_to_book_id,
             book_id_to_name,
             book_id_to_abbreviation,
-        }
+        })
     }
-}
 
-// #[derive(Clone, Debug)]
-// pub struct BookInfo<'a> {
-//     id: u8,
-//     name: &'a str,
-//     abbr: &'a str,
-// }
-
-impl<'a> BookManager {
     pub fn normalize_book_name(name: &str) -> String {
         name.to_lowercase().trim_end_matches(".").trim().to_string()
     }
