@@ -1,4 +1,5 @@
 pub mod bible;
+pub mod book_manager;
 pub mod bible_organizer;
 pub mod bible_verse_organizer;
 pub mod book_chapter_verse;
