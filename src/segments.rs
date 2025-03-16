@@ -7,8 +7,8 @@ use crate::{book_segment::BookSegment, compare::SegmentCompare, segment::Passage
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BookPassageSegments {
-    book: u8,
-    segments: PassageSegments,
+    pub book: u8,
+    pub segments: PassageSegments,
 }
 
 pub struct BookPassageSegmentsIter {
