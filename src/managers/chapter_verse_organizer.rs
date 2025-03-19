@@ -1,13 +1,12 @@
-use std::fmt::Debug;
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::passage::segment::{segment::SegmentCompare, types::chapter_verse::ChapterVerse};
+use crate::passage::segment::{segment::SegmentFns, types::chapter_verse::ChapterVerse};
 
 use super::content::PassageContent;
-
 
 // pub struct PassageContent<'a, Segment: SegmentCompare, Content> {
 //     segment: Segment,
@@ -15,7 +14,7 @@ use super::content::PassageContent;
 // }
 
 /// - This is a struct like [`PassageOrganizer`], but is meant to store the content of the Bible
-/// - It only stores content in chapter:verse segments, because that is how 
+/// - It only stores content in chapter:verse segments, because that is how
 /// - Any format is allowed: simple use cases might just use a string for the whole verse, more
 /// complex ones might use enums to indicate headers, indentation, and so on, or structs to store
 /// an interlinear Bible
@@ -34,22 +33,34 @@ impl<Content: Debug + Default> BibleBookOrganizer<Content> {
     }
 
     pub fn modify(&mut self, seg: ChapterVerse) -> &mut Content {
-        self.chapter_verse.entry(seg.chapter).or_default()
-            .entry(seg.verse).or_default()
+        self.chapter_verse
+            .entry(seg.chapter)
+            .or_default()
+            .entry(seg.verse)
+            .or_default()
     }
 
-    pub fn get_segment_content<'a>(&'a self, key: &'a impl SegmentCompare) -> Vec<PassageContent<'a, ChapterVerse, Content>>  {
+    pub fn get_segment_content<'a>(
+        &'a self,
+        key: &'a impl SegmentFns,
+    ) -> Vec<PassageContent<'a, ChapterVerse, Content>> {
         self.iter_segment_content(key).collect_vec()
     }
 
-    pub fn iter_segment_content<'a>(&'a self, key: &'a impl SegmentCompare) -> impl Iterator<Item = PassageContent<'a, ChapterVerse, Content>> {
-        self.chapter_verse.range(key.chapter_range()).flat_map(|(&chapter, map)| {
-            map.range(key.verse_range(chapter))
-                .map(move|(&verse, content)| ChapterVerse::new(chapter, verse).with_content(content))
-        })
+    pub fn iter_segment_content<'a>(
+        &'a self,
+        key: &'a impl SegmentFns,
+    ) -> impl Iterator<Item = PassageContent<'a, ChapterVerse, Content>> {
+        self.chapter_verse
+            .range(key.chapter_range())
+            .flat_map(|(&chapter, map)| {
+                map.range(key.verse_range(chapter))
+                    .map(move |(&verse, content)| {
+                        ChapterVerse::new(chapter, verse).with_content(content)
+                    })
+            })
     }
 }
-
 
 // #[cfg(test)]
 // mod tests {
@@ -66,7 +77,7 @@ impl<Content: Debug + Default> BibleBookOrganizer<Content> {
 //             String::from("He was in the beginning with God.");
 //         *john.modify(ChapterVerse::parse("1:3")?) =
 //             String::from("All things were made through him, and without him was not any thing made that was made.");
-//         
+//
 //         println!("{:#?}", john.get_segment_content(&ChapterVerse::parse("1:1")?));
 //         /* [
 //             (

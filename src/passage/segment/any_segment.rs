@@ -1,10 +1,20 @@
 // This is PassageSegment
 use serde::{Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, str::FromStr};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use crate::passage::segments::PassageSegments;
 
-use super::{segment::SegmentCompare, types::{chapter_range::ChapterRange, chapter_verse::ChapterVerse, chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter, full_chapter_range::FullChapterRange}};
+use super::{
+    segment::SegmentFns,
+    types::{
+        chapter_range::ChapterRange, chapter_verse::ChapterVerse,
+        chapter_verse_range::ChapterVerseRange, full_chapter::FullChapter,
+        full_chapter_range::FullChapterRange,
+    },
+};
 
 /// Remember, these correspond to
 /// ```text
@@ -28,7 +38,7 @@ use super::{segment::SegmentCompare, types::{chapter_range::ChapterRange, chapte
 /// ```
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum PassageSegment {
+pub enum AnySegment {
     /// - This is a single chapter/verse reference
     /// - Ex: `1:2` in `John 1:2`
     ChapterVerse(ChapterVerse),
@@ -46,62 +56,64 @@ pub enum PassageSegment {
     FullChapterRange(FullChapterRange),
 }
 
-impl PartialOrd for PassageSegment {
+impl PartialOrd for AnySegment {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(
-            self.starting_chapter().cmp(&other.starting_chapter())
-            .then(self.starting_verse().cmp(&other.starting_verse()))
-            .then(self.ending_chapter().cmp(&other.ending_chapter()))
-            .then(self.ending_verse().cmp(&other.ending_verse()))
+            self.starting_chapter()
+                .cmp(&other.starting_chapter())
+                .then(self.starting_verse().cmp(&other.starting_verse()))
+                .then(self.ending_chapter().cmp(&other.ending_chapter()))
+                .then(self.ending_verse().cmp(&other.ending_verse())),
         )
     }
 }
 
-impl SegmentCompare for PassageSegment {
+impl SegmentFns for AnySegment {
     fn starting_chapter(&self) -> u8 {
         match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.starting_chapter(),
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.starting_chapter(),
-            PassageSegment::ChapterRange(book_range) => book_range.starting_chapter(),
-            PassageSegment::FullChapter(full_chapter) => full_chapter.starting_chapter(),
-            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.starting_chapter(),
+            AnySegment::ChapterVerse(chapter_verse) => chapter_verse.starting_chapter(),
+            AnySegment::ChapterVerseRange(chapter_range) => chapter_range.starting_chapter(),
+            AnySegment::ChapterRange(book_range) => book_range.starting_chapter(),
+            AnySegment::FullChapter(full_chapter) => full_chapter.starting_chapter(),
+            AnySegment::FullChapterRange(full_chapter_range) => {
+                full_chapter_range.starting_chapter()
+            }
         }
     }
 
     fn starting_verse(&self) -> u8 {
         match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.starting_verse(),
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.starting_verse(),
-            PassageSegment::ChapterRange(book_range) => book_range.starting_verse(),
-            PassageSegment::FullChapter(full_chapter) => full_chapter.starting_verse(),
-            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.starting_verse(),
+            AnySegment::ChapterVerse(chapter_verse) => chapter_verse.starting_verse(),
+            AnySegment::ChapterVerseRange(chapter_range) => chapter_range.starting_verse(),
+            AnySegment::ChapterRange(book_range) => book_range.starting_verse(),
+            AnySegment::FullChapter(full_chapter) => full_chapter.starting_verse(),
+            AnySegment::FullChapterRange(full_chapter_range) => full_chapter_range.starting_verse(),
         }
     }
 
     fn ending_chapter(&self) -> u8 {
         match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.ending_chapter(),
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.ending_chapter(),
-            PassageSegment::ChapterRange(book_range) => book_range.ending_chapter(),
-            PassageSegment::FullChapter(full_chapter) => full_chapter.ending_chapter(),
-            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.ending_chapter(),
+            AnySegment::ChapterVerse(chapter_verse) => chapter_verse.ending_chapter(),
+            AnySegment::ChapterVerseRange(chapter_range) => chapter_range.ending_chapter(),
+            AnySegment::ChapterRange(book_range) => book_range.ending_chapter(),
+            AnySegment::FullChapter(full_chapter) => full_chapter.ending_chapter(),
+            AnySegment::FullChapterRange(full_chapter_range) => full_chapter_range.ending_chapter(),
         }
     }
 
     fn ending_verse(&self) -> Option<u8> {
         match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.ending_verse(),
-            PassageSegment::ChapterVerseRange(chapter_range) => chapter_range.ending_verse(),
-            PassageSegment::ChapterRange(book_range) => book_range.ending_verse(),
-            PassageSegment::FullChapter(full_chapter) => full_chapter.ending_verse(),
-            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.ending_verse(),
+            AnySegment::ChapterVerse(chapter_verse) => chapter_verse.ending_verse(),
+            AnySegment::ChapterVerseRange(chapter_range) => chapter_range.ending_verse(),
+            AnySegment::ChapterRange(book_range) => book_range.ending_verse(),
+            AnySegment::FullChapter(full_chapter) => full_chapter.ending_verse(),
+            AnySegment::FullChapterRange(full_chapter_range) => full_chapter_range.ending_verse(),
         }
     }
-
 }
 
 // Easy constructors
-impl PassageSegment {
+impl AnySegment {
     pub fn chapter_verse(chapter: u8, verse: u8) -> Self {
         Self::ChapterVerse(ChapterVerse::new(chapter, verse))
     }
@@ -110,8 +122,18 @@ impl PassageSegment {
         Self::ChapterVerseRange(ChapterVerseRange::new(chapter, start_verse, end_verse))
     }
 
-    pub fn chapter_range(start_chapter: u8, start_verse: u8, end_chapter: u8, end_verse: u8) -> Self {
-        Self::ChapterRange(ChapterRange::new(start_chapter, start_verse, end_chapter, end_verse))
+    pub fn chapter_range(
+        start_chapter: u8,
+        start_verse: u8,
+        end_chapter: u8,
+        end_verse: u8,
+    ) -> Self {
+        Self::ChapterRange(ChapterRange::new(
+            start_chapter,
+            start_verse,
+            end_chapter,
+            end_verse,
+        ))
     }
 
     pub fn full_chapter(chapter: u8) -> Self {
@@ -124,30 +146,37 @@ impl PassageSegment {
 }
 
 // Formatting
-impl Display for PassageSegment {
+impl Display for AnySegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            PassageSegment::ChapterVerse(chapter_verse) => chapter_verse.to_string(),
-            PassageSegment::ChapterVerseRange(chapter_verse_range) => chapter_verse_range.to_string(),
-            PassageSegment::ChapterRange(chapter_range) => chapter_range.to_string(),
-            PassageSegment::FullChapter(full_chapter) => full_chapter.to_string(),
-            PassageSegment::FullChapterRange(full_chapter_range) => full_chapter_range.to_string(),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                AnySegment::ChapterVerse(chapter_verse) => chapter_verse.to_string(),
+                AnySegment::ChapterVerseRange(chapter_verse_range) =>
+                    chapter_verse_range.to_string(),
+                AnySegment::ChapterRange(chapter_range) => chapter_range.to_string(),
+                AnySegment::FullChapter(full_chapter) => full_chapter.to_string(),
+                AnySegment::FullChapterRange(full_chapter_range) => full_chapter_range.to_string(),
+            }
+        )
     }
 }
 
-impl FromStr for PassageSegment {
+impl FromStr for AnySegment {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let segments = PassageSegments::parse(s)
-            .map_err(|_| format!("Could not parse any segments."))?;
-        if segments.is_empty() { Err(String::from("No segments found"))? }
+        let segments =
+            PassageSegments::parse(s).map_err(|_| format!("Could not parse any segments."))?;
+        if segments.is_empty() {
+            Err(String::from("No segments found"))?
+        }
         Ok(segments[0])
     }
 }
 
-impl PassageSegment {
+impl AnySegment {
     pub fn parse(input: &str) -> Result<Self, String> {
         input.parse::<Self>()
     }

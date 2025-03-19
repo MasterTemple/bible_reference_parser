@@ -2,16 +2,22 @@ use itertools::Either;
 
 use std::{collections::BTreeMap, fmt::Debug};
 
-use crate::{books::book_segment::BookSegment, passage::segment::{segment::SegmentCompare, types::chapter_verse::ChapterVerse}};
+use crate::{
+    books::book_segment::BookSegment,
+    passage::segment::{segment::SegmentFns, types::chapter_verse::ChapterVerse},
+};
 
-use super::{chapter_verse_organizer::BibleBookOrganizer, content::{BookPassageContent, PassageContent}};
+use super::{
+    chapter_verse_organizer::BibleBookOrganizer,
+    content::{BookPassageContent, PassageContent},
+};
 
 #[derive(Debug, Default)]
-pub struct BibleVerseOrganizer<Content: Debug + Default> {
+pub struct BookChapterVerseOrganizer<Content: Debug + Default> {
     chapter_verse: BTreeMap<u8, BibleBookOrganizer<Content>>,
 }
 
-impl<Content: Debug + Default> BibleVerseOrganizer<Content> {
+impl<Content: Debug + Default> BookChapterVerseOrganizer<Content> {
     pub fn new() -> Self {
         Self {
             chapter_verse: BTreeMap::default(),
@@ -20,27 +26,39 @@ impl<Content: Debug + Default> BibleVerseOrganizer<Content> {
 
     pub fn modify(&mut self, key: BookSegment<ChapterVerse>) -> &mut Content {
         self.chapter_verse
-            .entry(key.book.id).or_default()
+            .entry(key.book.id)
+            .or_default()
             .modify(key.segment)
     }
 
-    fn iter_book<'a, Segment: SegmentCompare, OutputSegment: SegmentCompare, Return: Iterator<Item = PassageContent<'a, OutputSegment, Content>>>
-        (&'a self,
-            key: &'a BookSegment<Segment>,
-            iter: impl FnOnce(&'a BibleBookOrganizer<Content>, &'a Segment) -> Return
-        )
-        -> impl Iterator<Item = BookPassageContent<'a, OutputSegment, Content>>
-    {
+    fn iter_book<
+        'a,
+        Segment: SegmentFns,
+        OutputSegment: SegmentFns,
+        Return: Iterator<Item = PassageContent<'a, OutputSegment, Content>>,
+    >(
+        &'a self,
+        key: &'a BookSegment<Segment>,
+        iter: impl FnOnce(&'a BibleBookOrganizer<Content>, &'a Segment) -> Return,
+    ) -> impl Iterator<Item = BookPassageContent<'a, OutputSegment, Content>> {
         match self.chapter_verse.get(&key.book.id) {
-            Some(org) => Either::Left(iter(org, &key.segment).map(move |psg| psg.with_book(key.book))),
+            Some(org) => {
+                Either::Left(iter(org, &key.segment).map(move |psg| psg.with_book(key.book)))
+            }
             None => Either::Right(std::iter::empty()),
         }
     }
 
-    pub fn iter_segment_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> impl Iterator<Item = BookPassageContent<'a, ChapterVerse, Content>> {
+    pub fn iter_segment_content<'a, Segment: SegmentFns>(
+        &'a self,
+        key: &'a BookSegment<Segment>,
+    ) -> impl Iterator<Item = BookPassageContent<'a, ChapterVerse, Content>> {
         self.iter_book(key, |org, seg| org.iter_segment_content(seg))
     }
-    pub fn get_segment_content<'a, Segment: SegmentCompare>(&'a self, key: &'a BookSegment<Segment>) -> Vec<BookPassageContent<'a, ChapterVerse, Content>> {
+    pub fn get_segment_content<'a, Segment: SegmentFns>(
+        &'a self,
+        key: &'a BookSegment<Segment>,
+    ) -> Vec<BookPassageContent<'a, ChapterVerse, Content>> {
         self.iter_segment_content(key).collect()
     }
 }

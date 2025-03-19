@@ -1,7 +1,15 @@
 use serde::{de::Visitor, Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, str::FromStr};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
-use crate::passage::segment::{any_segment::PassageSegment, individual_parse::{ParsableSegment, SegmentParseMethods}, range_pair::RangePair, segment::SegmentCompare};
+use crate::passage::segment::{
+    any_segment::AnySegment,
+    individual_parse::{ParsableSegment, SegmentParseMethods},
+    range_pair::RangePair,
+    segment::SegmentFns,
+};
 
 /// - This is a range of verse references within a single chapter
 /// - Ex: `1:2-3` `John 1:2-3`
@@ -13,14 +21,19 @@ pub struct ChapterVerseRange {
 
 impl Display for ChapterVerseRange {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}-{}", self.chapter, self.verses.start, self.verses.end)
+        write!(
+            f,
+            "{}:{}-{}",
+            self.chapter, self.verses.start, self.verses.end
+        )
     }
 }
 
 impl Serialize for ChapterVerseRange {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         serializer.serialize_str(self.to_string().as_str())
     }
 }
@@ -35,18 +48,23 @@ impl<'de> Visitor<'de> for ChapterVerseRangeVisitor {
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::SeqAccess<'de>, {
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
         Ok(ChapterVerseRange::new(
-            seq.next_element()?.ok_or_else(|| serde::de::Error::custom("missing chapter"))?,
-            seq.next_element()?.ok_or_else(|| serde::de::Error::custom("missing end chapter"))?,
-            seq.next_element()?.ok_or_else(|| serde::de::Error::custom("missing end verse"))?,
+            seq.next_element()?
+                .ok_or_else(|| serde::de::Error::custom("missing chapter"))?,
+            seq.next_element()?
+                .ok_or_else(|| serde::de::Error::custom("missing end chapter"))?,
+            seq.next_element()?
+                .ok_or_else(|| serde::de::Error::custom("missing end verse"))?,
         ))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error, {
+    where
+        E: serde::de::Error,
+    {
         v.parse().map_err(|e| E::custom(e))
     }
 }
@@ -54,7 +72,8 @@ impl<'de> Visitor<'de> for ChapterVerseRangeVisitor {
 impl<'de> Deserialize<'de> for ChapterVerseRange {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de> {
+        D: serde::Deserializer<'de>,
+    {
         deserializer.deserialize_str(ChapterVerseRangeVisitor)
     }
 }
@@ -67,7 +86,7 @@ impl FromStr for ChapterVerseRange {
     }
 }
 
-impl SegmentCompare for ChapterVerseRange {
+impl SegmentFns for ChapterVerseRange {
     fn starting_chapter(&self) -> u8 {
         self.chapter
     }
@@ -88,9 +107,10 @@ impl SegmentCompare for ChapterVerseRange {
 impl PartialOrd for ChapterVerseRange {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(
-            self.chapter.cmp(&other.chapter)
-            .then(self.verses.start.cmp(&other.verses.start))
-            .then(self.verses.end.cmp(&other.verses.end))
+            self.chapter
+                .cmp(&other.chapter)
+                .then(self.verses.start.cmp(&other.verses.start))
+                .then(self.verses.end.cmp(&other.verses.end)),
         )
     }
 }
@@ -107,28 +127,32 @@ impl ChapterVerseRange {
     }
 }
 
-impl Into<PassageSegment> for ChapterVerseRange {
-    fn into(self) -> PassageSegment {
-        PassageSegment::ChapterVerseRange(self)
+impl Into<AnySegment> for ChapterVerseRange {
+    fn into(self) -> AnySegment {
+        AnySegment::ChapterVerseRange(self)
     }
 }
 
-impl TryFrom<PassageSegment> for ChapterVerseRange {
+impl TryFrom<AnySegment> for ChapterVerseRange {
     type Error = String;
 
-    fn try_from(value: PassageSegment) -> Result<Self, Self::Error> {
+    fn try_from(value: AnySegment) -> Result<Self, Self::Error> {
         Ok(match value {
-            PassageSegment::ChapterVerse(chapter_verse) => {
-                ChapterVerseRange::new(
-                    chapter_verse.chapter,
-                    chapter_verse.verse,
-                    chapter_verse.verse
-                )
-            },
-            PassageSegment::ChapterVerseRange(chapter_verse_range) => chapter_verse_range,
-            PassageSegment::ChapterRange(_) => Err(format!("Cannot coerce ChapterRange into ChapterVerseRange"))?,
-            PassageSegment::FullChapter(_) => Err(format!("Cannot coerce FullChapter into ChapterVerseRange"))?,
-            PassageSegment::FullChapterRange(_) => Err(format!("Cannot coerce FullChapterRange into ChapterVerseRange"))?,
+            AnySegment::ChapterVerse(chapter_verse) => ChapterVerseRange::new(
+                chapter_verse.chapter,
+                chapter_verse.verse,
+                chapter_verse.verse,
+            ),
+            AnySegment::ChapterVerseRange(chapter_verse_range) => chapter_verse_range,
+            AnySegment::ChapterRange(_) => {
+                Err(format!("Cannot coerce ChapterRange into ChapterVerseRange"))?
+            }
+            AnySegment::FullChapter(_) => {
+                Err(format!("Cannot coerce FullChapter into ChapterVerseRange"))?
+            }
+            AnySegment::FullChapterRange(_) => Err(format!(
+                "Cannot coerce FullChapterRange into ChapterVerseRange"
+            ))?,
         })
     }
 }

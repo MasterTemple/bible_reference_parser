@@ -1,10 +1,13 @@
-use std::{iter::Peekable, str::{Chars, FromStr}};
+use std::{
+    iter::Peekable,
+    str::{Chars, FromStr},
+};
 
 use itertools::Itertools;
 
 use crate::passage::segments::PassageSegments;
 
-use super::any_segment::PassageSegment;
+use super::any_segment::AnySegment;
 
 // To parse just `1:1`
 pub(crate) trait SegmentParseMethods: ParsableSegment {
@@ -26,13 +29,16 @@ pub(crate) trait SegmentParseMethods: ParsableSegment {
 
     /// It must be peekable to not consume the following element
     fn take_number(chars: &mut Peekable<Chars<'_>>) -> Result<u8, String> {
-        chars.peeking_take_while(|c| c.is_numeric()).join("").parse::<u8>()
+        chars
+            .peeking_take_while(|c| c.is_numeric())
+            .join("")
+            .parse::<u8>()
             .map_err(|_| format!("Expected format '{}'", Self::EXPECTED_FORMAT))
     }
 }
-impl<T: ParsableSegment> SegmentParseMethods for T { }
+impl<T: ParsableSegment> SegmentParseMethods for T {}
 
-pub trait ParsableSegment: Sized + TryFrom<PassageSegment, Error = String> {
+pub trait ParsableSegment: Sized + TryFrom<AnySegment, Error = String> {
     const EXPECTED_FORMAT: &'static str;
 
     /// - This is meant to be a strict match because this is to be highly performant method (since
@@ -46,11 +52,23 @@ pub trait ParsableSegment: Sized + TryFrom<PassageSegment, Error = String> {
     /// entire set of passage segments of all kinds (with all the character replacements)
     /// and then match on the first segment or try and coerce it into the desired type
     /// - There must only be **exactly 1** segment matched
-    fn parse(input: &str) -> Result<Self, String>  {
+    fn parse(input: &str) -> Result<Self, String> {
         Self::parse_strict(input).or_else(|_| {
-            let segments = PassageSegments::parse(input).map_err(|_| format!("Could not parse any segments. Expected format '{}'", Self::EXPECTED_FORMAT))?;
-            if segments.is_empty() { Err(String::from("No segments found"))? }
-            if segments.len() > 1 { Err(format!("Expected exactly 1 segment, found {}", segments.len()))? }
+            let segments = PassageSegments::parse(input).map_err(|_| {
+                format!(
+                    "Could not parse any segments. Expected format '{}'",
+                    Self::EXPECTED_FORMAT
+                )
+            })?;
+            if segments.is_empty() {
+                Err(String::from("No segments found"))?
+            }
+            if segments.len() > 1 {
+                Err(format!(
+                    "Expected exactly 1 segment, found {}",
+                    segments.len()
+                ))?
+            }
             Self::try_from(segments[0])
         })
     }

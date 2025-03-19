@@ -3,12 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::books::{book_data::BookInfo, book_segments::BookPassageSegments};
 
-use super::segment::{any_segment::PassageSegment, segment::SegmentCompare};
+use super::segment::{any_segment::AnySegment, segment::SegmentFns};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[derive(IntoIterator, Deref, DerefMut)]
-pub struct PassageSegments(pub Vec<PassageSegment>);
-
+#[derive(Clone, Debug, Serialize, Deserialize, IntoIterator, Deref, DerefMut)]
+pub struct PassageSegments(pub Vec<AnySegment>);
 
 impl PassageSegments {
     pub fn new() -> Self {
@@ -18,12 +16,12 @@ impl PassageSegments {
     pub fn with_book<'a>(self, book_info: BookInfo<'a>) -> BookPassageSegments<'a> {
         BookPassageSegments {
             book: book_info,
-            segments: self
+            segments: self,
         }
     }
 
     // pub fn overlaps_segment(&self, other: impl Into<PassageSegment>) -> bool {
-    pub fn overlaps_with(&self, other: &impl SegmentCompare) -> bool {
+    pub fn overlaps_with(&self, other: &impl SegmentFns) -> bool {
         self.iter().any(|this| this.overlaps_with(other))
     }
 

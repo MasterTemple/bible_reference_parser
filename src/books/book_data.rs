@@ -133,6 +133,13 @@ pub struct BookMatch<'a> {
     pub reference_match: Match<'a>,
 }
 
+impl<'a> BookMatch<'a> {
+    pub fn parse(&self) -> Result<BookPassageSegments<'a>> {
+        let segments = PassageSegments::parse(self.reference_match.as_str())?;
+        Ok(segments.with_book(self.book_info))
+    }
+}
+
 impl Default for BookData {
     fn default() -> Self {
         let data = BookWithAbbreviationsList::default();
@@ -147,6 +154,7 @@ mod tests {
     #[test]
     fn book_match() {
         let bd = BookData::default();
-        dbg!(bd.find_book_match("Genesis 1:1"));
+        dbg!(bd.find_book_match("Genesis 1:1").unwrap().parse().unwrap());
+        dbg!(bd.find_book_match("Gen.xiv.1").unwrap().parse().unwrap());
     }
 }

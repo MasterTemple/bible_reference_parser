@@ -1,7 +1,14 @@
 use serde::{de::Visitor, Deserialize, Serialize};
-use std::{fmt::{Debug, Display}, str::FromStr};
+use std::{
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
-use crate::passage::segment::{any_segment::PassageSegment, individual_parse::{ParsableSegment, SegmentParseMethods}, segment::SegmentCompare};
+use crate::passage::segment::{
+    any_segment::AnySegment,
+    individual_parse::{ParsableSegment, SegmentParseMethods},
+    segment::SegmentFns,
+};
 
 /// - This is a single chapter reference
 /// - Ex: `1` in `John 1`
@@ -19,7 +26,8 @@ impl Display for FullChapter {
 impl Serialize for FullChapter {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         serializer.serialize_str(self.to_string().as_str())
     }
 }
@@ -34,16 +42,18 @@ impl<'de> Visitor<'de> for FullChapterVisitor {
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::SeqAccess<'de>, {
-        Ok(FullChapter::new(
-            seq.next_element()?.ok_or_else(|| serde::de::Error::custom("missing chapter"))?,
-        ))
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        Ok(FullChapter::new(seq.next_element()?.ok_or_else(|| {
+            serde::de::Error::custom("missing chapter")
+        })?))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error, {
+    where
+        E: serde::de::Error,
+    {
         v.parse().map_err(|e| E::custom(e))
     }
 }
@@ -51,7 +61,8 @@ impl<'de> Visitor<'de> for FullChapterVisitor {
 impl<'de> Deserialize<'de> for FullChapter {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de> {
+        D: serde::Deserializer<'de>,
+    {
         deserializer.deserialize_str(FullChapterVisitor)
     }
 }
@@ -64,7 +75,7 @@ impl FromStr for FullChapter {
     }
 }
 
-impl SegmentCompare for FullChapter {
+impl SegmentFns for FullChapter {
     fn starting_chapter(&self) -> u8 {
         self.chapter
     }
@@ -88,30 +99,28 @@ impl FullChapter {
     }
 }
 
-impl Into<PassageSegment> for FullChapter {
-    fn into(self) -> PassageSegment {
-        PassageSegment::FullChapter(self)
+impl Into<AnySegment> for FullChapter {
+    fn into(self) -> AnySegment {
+        AnySegment::FullChapter(self)
     }
 }
 
-impl TryFrom<PassageSegment> for FullChapter {
+impl TryFrom<AnySegment> for FullChapter {
     type Error = String;
 
-    fn try_from(value: PassageSegment) -> Result<Self, Self::Error> {
+    fn try_from(value: AnySegment) -> Result<Self, Self::Error> {
         Ok(match value {
-            PassageSegment::ChapterVerse(chapter_verse) => {
-                FullChapter::new(
-                    chapter_verse.chapter,
-                )
-            },
-            PassageSegment::ChapterVerseRange(chapter_verse_range) => {
-                FullChapter::new(
-                    chapter_verse_range.chapter,
-                )
-            },
-            PassageSegment::ChapterRange(_) => Err(format!("Cannot coerce ChapterRange into FullChapter"))?,
-            PassageSegment::FullChapter(full_chapter) => full_chapter,
-            PassageSegment::FullChapterRange(_) => Err(format!("Cannot coerce FullChapterRange into FullChapter"))?,
+            AnySegment::ChapterVerse(chapter_verse) => FullChapter::new(chapter_verse.chapter),
+            AnySegment::ChapterVerseRange(chapter_verse_range) => {
+                FullChapter::new(chapter_verse_range.chapter)
+            }
+            AnySegment::ChapterRange(_) => {
+                Err(format!("Cannot coerce ChapterRange into FullChapter"))?
+            }
+            AnySegment::FullChapter(full_chapter) => full_chapter,
+            AnySegment::FullChapterRange(_) => {
+                Err(format!("Cannot coerce FullChapterRange into FullChapter"))?
+            }
         })
     }
 }
