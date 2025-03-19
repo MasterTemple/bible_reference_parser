@@ -1,26 +1,38 @@
-use std::{iter::Peekable, str::{Chars, FromStr}};
+use std::{
+    iter::Peekable,
+    str::{Chars, FromStr},
+};
 
 use itertools::Itertools;
+use numerals::roman::Roman;
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Captures, Regex};
 
-use super::{segment::{any_segment::PassageSegment, types::chapter_verse::ChapterVerse}, segments::PassageSegments};
+use super::{
+    segment::{any_segment::PassageSegment, types::chapter_verse::ChapterVerse},
+    segments::PassageSegments,
+};
 
 /// Basically, start with and end with a digit
 /// and then collect digits joined by ranges `-–——⸺` or segments `,;` or chapters `:`
-static POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^ *\d+( *[\.,:;\-–——⸺] *\d+)*").unwrap());
+pub static POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS: Lazy<Regex> =
+    // without roman numerals
+    // Lazy::new(|| Regex::new(r"^ *\d+( *[\.,:;\-–——⸺] *\d+)*").unwrap());
+    // with roman numerals `\d+` -> `([ivxlc]+|\d+)`
+    Lazy::new(|| Regex::new(r"^ *([ivxlc]+|\d+)( *[\.,:;\-–——⸺] *([ivxlc]+|\d+))*").unwrap());
 
 const ALL_DASHES: [char; 5] = ['-', '–', '—', '—', '⸺'];
 const SEGMENT_SPLITTERS: [char; 2] = [',', ';'];
 
 static NON_SEGMENT_CHARACTERS: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^\d,:;-]+").unwrap());
+static ROMAN_NUMERALS: Lazy<Regex> = Lazy::new(|| Regex::new(r"[ivxlc]+").unwrap());
 
 static TRAILING_NON_DIGITS: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\D+$)").unwrap());
 
 impl PassageSegments {
     pub fn parse(segment_input: &str) -> Result<Self, String> {
-        let input = match_and_sanitize_segment_input(segment_input).ok_or_else(|| String::from("Failed to parse segments"))?;
+        let input = match_and_sanitize_segment_input(segment_input)
+            .ok_or_else(|| String::from("Failed to parse segments"))?;
         let segments = parse_reference_segments(&input);
         Ok(segments)
     }
@@ -37,7 +49,8 @@ impl FromStr for PassageSegments {
 fn match_and_sanitize_segment_input(segment_input: &str) -> Option<String> {
     let segment_match = POST_BOOK_VALID_REFERENCE_SEGMENT_CHARACTERS
         .find_iter(segment_input)
-        .next()?.as_str();
+        .next()?
+        .as_str();
 
     // swap weird hyphens with normal dash
     let input = &segment_match.replace(ALL_DASHES, "-");
@@ -45,11 +58,22 @@ fn match_and_sanitize_segment_input(segment_input: &str) -> Option<String> {
     // swap period with colon (to support 'Jn1.1')
     let input = &input.replace(".", ":");
 
+    let input = ROMAN_NUMERALS
+        .replace_all(&input, |m: &Captures| {
+            let s = m.get(0).unwrap().as_str();
+            let parsed = Roman::parse(s);
+            parsed.unwrap().value().to_string()
+        })
+        .to_string();
+
     // input now only contains the following characters: [\d,:;-]
     let input = NON_SEGMENT_CHARACTERS.replace_all(&input, "").to_string();
 
     // removing trailing non-digits (leading shouldn't exist)
-    let input = TRAILING_NON_DIGITS.replace_all(&input, "").to_string();
+    let input = TRAILING_NON_DIGITS
+        .replace_all(&input, "")
+        .trim()
+        .to_string();
 
     Some(input)
 }
@@ -76,10 +100,7 @@ fn parse_reference_segments(input: &str) -> PassageSegments {
                 if !left.contains(":") && !right.contains(":") {
                     let start = left.parse().unwrap();
                     let end = right.parse().unwrap();
-                    segments.push(PassageSegment::full_chapter_range(
-                        start,
-                        end,
-                    ));
+                    segments.push(PassageSegment::full_chapter_range(start, end));
                     chapter = end;
                     continue;
                 }
@@ -91,10 +112,10 @@ fn parse_reference_segments(input: &str) -> PassageSegments {
                 (Some((ch1, v1)), Some((ch2, v2))) => {
                     chapter = ch2.parse().unwrap();
                     segments.push(PassageSegment::chapter_range(
-                            ch1.parse().unwrap(),
-                            v1.parse().unwrap(),
-                            chapter,
-                            v2.parse().unwrap(),
+                        ch1.parse().unwrap(),
+                        v1.parse().unwrap(),
+                        chapter,
+                        v2.parse().unwrap(),
                     ));
                 }
                 // `ch1:v1 - v2`
@@ -111,10 +132,10 @@ fn parse_reference_segments(input: &str) -> PassageSegments {
                     let start_chapter = chapter;
                     chapter = ch2.parse().unwrap();
                     segments.push(PassageSegment::chapter_range(
-                            start_chapter,
-                            left.parse().unwrap(),
-                            chapter,
-                            v2.parse().unwrap(),
+                        start_chapter,
+                        left.parse().unwrap(),
+                        chapter,
+                        v2.parse().unwrap(),
                     ));
                 }
                 // `v1 - v2`
@@ -132,10 +153,7 @@ fn parse_reference_segments(input: &str) -> PassageSegments {
             // handle `ch:v`
             if let Some((ch, v)) = range.split_once(":") {
                 chapter = ch.parse().unwrap();
-                segments.push(PassageSegment::chapter_verse(
-                    chapter,
-                    v.parse().unwrap(),
-                ));
+                segments.push(PassageSegment::chapter_verse(chapter, v.parse().unwrap()));
             }
             // handle `ch` or `v`
             else {
@@ -168,115 +186,135 @@ mod parse_tests {
         parsed.0
     }
 
+    #[test]
+    fn roman() {
+        assert_eq!(parse("i:2"), vec![PassageSegment::chapter_verse(1, 2)]);
+        assert_eq!(parse("iv:2"), vec![PassageSegment::chapter_verse(4, 2)]);
+        assert_eq!(parse("v:2"), vec![PassageSegment::chapter_verse(5, 2)]);
+    }
+
     // ChapterVerse: 1:2
     #[test]
     fn chapter_verse() {
-        assert_eq!(parse("1:2"), vec![
-            PassageSegment::chapter_verse(1, 2)
-        ]);
+        assert_eq!(parse("1:2"), vec![PassageSegment::chapter_verse(1, 2)]);
 
-        assert_eq!(parse("1.2"), vec![
-            PassageSegment::chapter_verse(1, 2)
-        ]);
+        assert_eq!(parse("1.2"), vec![PassageSegment::chapter_verse(1, 2)]);
     }
 
     // ChapterVerseRange: 1:2-3
     #[test]
     fn chapter_verse_range() {
-        assert_eq!(parse("1:2-3"), vec![
-            PassageSegment::chapter_verse_range(1, 2, 3)
-        ]);
+        assert_eq!(
+            parse("1:2-3"),
+            vec![PassageSegment::chapter_verse_range(1, 2, 3)]
+        );
     }
 
     // ChapterRange: 1:2-3:4
     #[test]
     fn chapter_range() {
-        assert_eq!(parse("1:2-3:4"), vec![
-            PassageSegment::chapter_range(1, 2, 3, 4)
-        ]);
+        assert_eq!(
+            parse("1:2-3:4"),
+            vec![PassageSegment::chapter_range(1, 2, 3, 4)]
+        );
     }
 
     // FullChapter: 1
     #[test]
     fn full_chapter() {
-        assert_eq!(parse("1"), vec![
-            PassageSegment::full_chapter(1)
-        ]);
+        assert_eq!(parse("1"), vec![PassageSegment::full_chapter(1)]);
     }
 
     // FullChapterRange: 1-2
     #[test]
     fn full_chapter_range() {
-        assert_eq!(parse("1-2"), vec![
-            PassageSegment::full_chapter_range(1, 2)
-        ]);
+        assert_eq!(parse("1-2"), vec![PassageSegment::full_chapter_range(1, 2)]);
     }
-    
+
     #[test]
     fn change_out_of_chapter() {
-        assert_eq!(parse("1:1,3-4"), vec![
-            PassageSegment::chapter_verse(1, 1),
-            PassageSegment::chapter_verse_range(1, 3, 4),
-        ])
+        assert_eq!(
+            parse("1:1,3-4"),
+            vec![
+                PassageSegment::chapter_verse(1, 1),
+                PassageSegment::chapter_verse_range(1, 3, 4),
+            ]
+        )
     }
 
     // John 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8
     #[test]
     fn combined() {
         // 1
-        assert_eq!(parse("1"), vec![
-            PassageSegment::full_chapter(1),
-        ]);
+        assert_eq!(parse("1"), vec![PassageSegment::full_chapter(1),]);
 
         // 1,2-4
-        assert_eq!(parse("1,2-4"), vec![
-            PassageSegment::full_chapter(1),
-            PassageSegment::full_chapter_range(2, 4),
-        ]);
+        assert_eq!(
+            parse("1,2-4"),
+            vec![
+                PassageSegment::full_chapter(1),
+                PassageSegment::full_chapter_range(2, 4),
+            ]
+        );
 
         // 1,2-4,5:1-3
-        assert_eq!(parse("1,2-4,5:1-3"), vec![
-            PassageSegment::full_chapter(1),
-            PassageSegment::full_chapter_range(2, 4),
-            PassageSegment::chapter_verse_range(5, 1, 3),
-        ]);
+        assert_eq!(
+            parse("1,2-4,5:1-3"),
+            vec![
+                PassageSegment::full_chapter(1),
+                PassageSegment::full_chapter_range(2, 4),
+                PassageSegment::chapter_verse_range(5, 1, 3),
+            ]
+        );
 
         // 1,2-4,5:1-3,5
-        assert_eq!(parse("1,2-4,5:1-3,5"), vec![
-            PassageSegment::full_chapter(1),
-            PassageSegment::full_chapter_range(2, 4),
-            PassageSegment::chapter_verse_range(5, 1, 3),
-            PassageSegment::chapter_verse(5, 5),
-        ]);
+        assert_eq!(
+            parse("1,2-4,5:1-3,5"),
+            vec![
+                PassageSegment::full_chapter(1),
+                PassageSegment::full_chapter_range(2, 4),
+                PassageSegment::chapter_verse_range(5, 1, 3),
+                PassageSegment::chapter_verse(5, 5),
+            ]
+        );
 
         // 1,2-4,5:1-3,5,7-9
-        assert_eq!(parse("1,2-4,5:1-3,5,7-9"), vec![
-            PassageSegment::full_chapter(1),
-            PassageSegment::full_chapter_range(2, 4),
-            PassageSegment::chapter_verse_range(5, 1, 3),
-            PassageSegment::chapter_verse(5, 5),
-            PassageSegment::chapter_verse_range(5, 7, 9),
-        ]);
+        assert_eq!(
+            parse("1,2-4,5:1-3,5,7-9"),
+            vec![
+                PassageSegment::full_chapter(1),
+                PassageSegment::full_chapter_range(2, 4),
+                PassageSegment::chapter_verse_range(5, 1, 3),
+                PassageSegment::chapter_verse(5, 5),
+                PassageSegment::chapter_verse_range(5, 7, 9),
+            ]
+        );
 
         // 1,2-4,5:1-3,5,7-9,12-6:6
-        assert_eq!(parse("1,2-4,5:1-3,5,7-9,12-6:6"), vec![
-            PassageSegment::full_chapter(1),
-            PassageSegment::full_chapter_range(2, 4),
-            PassageSegment::chapter_verse_range(5, 1, 3),
-            PassageSegment::chapter_verse(5, 5),
-            PassageSegment::chapter_verse_range(5, 7, 9),
-            PassageSegment::chapter_range(5, 12, 6, 6),
-        ]);
+        assert_eq!(
+            parse("1,2-4,5:1-3,5,7-9,12-6:6"),
+            vec![
+                PassageSegment::full_chapter(1),
+                PassageSegment::full_chapter_range(2, 4),
+                PassageSegment::chapter_verse_range(5, 1, 3),
+                PassageSegment::chapter_verse(5, 5),
+                PassageSegment::chapter_verse_range(5, 7, 9),
+                PassageSegment::chapter_range(5, 12, 6, 6),
+            ]
+        );
 
         // 1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8
-        assert_eq!(parse("1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8"), vec![
-            PassageSegment::full_chapter(1),
-            PassageSegment::full_chapter_range(2, 4),
-            PassageSegment::chapter_verse_range(5, 1, 3),
-            PassageSegment::chapter_verse(5, 5),
-            PassageSegment::chapter_verse_range(5, 7, 9),
-            PassageSegment::chapter_range(5, 12, 6, 6),
-            PassageSegment::chapter_range(7, 7, 8, 8),
-        ]);
+        assert_eq!(
+            parse("1,2-4,5:1-3,5,7-9,12-6:6,7:7-8:8"),
+            vec![
+                PassageSegment::full_chapter(1),
+                PassageSegment::full_chapter_range(2, 4),
+                PassageSegment::chapter_verse_range(5, 1, 3),
+                PassageSegment::chapter_verse(5, 5),
+                PassageSegment::chapter_verse_range(5, 7, 9),
+                PassageSegment::chapter_range(5, 12, 6, 6),
+                PassageSegment::chapter_range(7, 7, 8, 8),
+            ]
+        );
     }
 }
